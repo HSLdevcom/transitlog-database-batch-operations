@@ -1,6 +1,6 @@
 package fi.hsl.features.splitdatabasetables;
 
-import fi.hsl.domain.Database;
+import fi.hsl.features.Database;
 import lombok.Data;
 import lombok.Getter;
 import lombok.NoArgsConstructor;

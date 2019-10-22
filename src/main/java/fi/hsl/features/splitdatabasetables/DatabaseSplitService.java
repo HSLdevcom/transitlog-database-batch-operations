@@ -1,8 +1,8 @@
 package fi.hsl.features.splitdatabasetables;
 
-import fi.hsl.domain.Database;
-import fi.hsl.domain.DatabasePoolFactory;
-import fi.hsl.domain.ReadWriteDatabasePool;
+import fi.hsl.features.Database;
+import fi.hsl.features.DatabasePoolFactory;
+import fi.hsl.features.ReadWriteDatabasePool;
 import org.springframework.batch.core.JobParametersInvalidException;
 import org.springframework.batch.core.repository.JobExecutionAlreadyRunningException;
 import org.springframework.batch.core.repository.JobInstanceAlreadyCompleteException;

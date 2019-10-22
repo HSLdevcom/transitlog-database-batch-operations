@@ -1,4 +1,4 @@
-package fi.hsl.domain;
+package fi.hsl.features;
 
 import fi.hsl.features.splitdatabasetables.DatabaseSplitJob;
 import fi.hsl.features.synchronizedatabases.DatabaseSyncJob;

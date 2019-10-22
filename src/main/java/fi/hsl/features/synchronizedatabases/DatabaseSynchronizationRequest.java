@@ -1,6 +1,6 @@
 package fi.hsl.features.synchronizedatabases;
 
-import fi.hsl.domain.Database;
+import fi.hsl.features.Database;
 import lombok.Data;
 import lombok.Getter;
 import lombok.NoArgsConstructor;

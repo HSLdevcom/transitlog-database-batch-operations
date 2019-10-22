@@ -1,8 +1,8 @@
 package fi.hsl.features.synchronizedatabases;
 
-import fi.hsl.domain.Database;
-import fi.hsl.domain.ReadDatabase;
-import fi.hsl.domain.WriteDatabase;
+import fi.hsl.features.Database;
+import fi.hsl.features.ReadDatabase;
+import fi.hsl.features.WriteDatabase;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.JobParameters;

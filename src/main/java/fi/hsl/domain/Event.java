@@ -1,7 +1,7 @@
 package fi.hsl.domain;
 
 
-import lombok.Data;
+import org.springframework.data.domain.Persistable;
 
 import javax.persistence.*;
 import java.math.BigInteger;
@@ -10,9 +10,7 @@ import java.sql.Timestamp;
 import java.util.Date;
 
 @MappedSuperclass
-@Data
-abstract class Event {
-
+abstract class Event implements Persistable<EventId> {
     @Embedded
     @Id
     private EventId event;
@@ -56,7 +54,6 @@ abstract class Event {
     private Integer stop;
     private String route;
     private Integer occu;
-
     public Event(Vehicle item) {
         this.event = new EventId(item.getTst(), item.getUnique_vehicle_id(), item.getEvent_type(), item.getJourney_type());
         this.received_at = item.getReceived_at();
@@ -96,8 +93,28 @@ abstract class Event {
         this.route = item.getRoute();
         this.occu = item.getOccu();
     }
-
     public Event() {
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        return false;
+    }
+
+    @Override
+    public int hashCode() {
+        return super.hashCode();
+    }
+
+    @Override
+    public EventId getId() {
+        return event;
+    }
+
+    @Override
+    public boolean isNew() {
+        //Force JPA to ASSUME ENTITY IS NEW to delegate conflict checking to database
+        return true;
     }
 
 

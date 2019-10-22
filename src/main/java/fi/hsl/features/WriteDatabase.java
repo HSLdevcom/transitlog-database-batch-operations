@@ -1,4 +1,4 @@
-package fi.hsl.domain;
+package fi.hsl.features;
 
 import lombok.Data;
 import org.springframework.batch.core.launch.JobLauncher;

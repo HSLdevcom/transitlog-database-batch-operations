@@ -1,9 +1,9 @@
 package fi.hsl.features.splitdatabasetables;
 
-import fi.hsl.domain.Database;
-import fi.hsl.domain.ReadDatabase;
 import fi.hsl.domain.Vehicle;
-import fi.hsl.domain.WriteDatabase;
+import fi.hsl.features.Database;
+import fi.hsl.features.ReadDatabase;
+import fi.hsl.features.WriteDatabase;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.JobParameters;
@@ -19,7 +19,6 @@ import org.springframework.batch.core.repository.JobRestartException;
 import org.springframework.batch.item.ItemReader;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.item.database.builder.JdbcCursorItemReaderBuilder;
-import org.springframework.batch.item.database.builder.JpaItemWriterBuilder;
 import org.springframework.batch.item.support.CompositeItemProcessor;
 
 import java.math.BigInteger;
@@ -56,26 +55,29 @@ public class DatabaseSplitJob {
     private Step createSplitJobReadStep(ReadDatabase readDatabase, WriteDatabase writeDatabase, Database.ReadSqlQuery executableSqlQuery) throws SQLException {
         StepBuilderFactory stepBuilderFactory = new StepBuilderFactory(jobRepository, writeDatabase.getWriteTransactionManager());
         return stepBuilderFactory.get("splitJobReadFromDatabase")
-                .<Vehicle, Object>chunk(100)
+                .<Vehicle, Object>chunk(20)
                 .reader(createReader(readDatabase, executableSqlQuery.getSqlQuery()))
                 .processor(new SplitJobLoggingProcessor())
                 .processor(new DomainMappingProcessor())
                 .writer(createWriter(writeDatabase))
+                .faultTolerant()
+                //Do nothing on duplicates
+                .skipPolicy(new DuplicateViolationPolicy())
                 .build();
 
     }
 
     private ItemWriter<? super Object> createWriter(WriteDatabase writeDatabase) {
-        return new JpaItemWriterBuilder<>()
-                .entityManagerFactory(writeDatabase.getWriteEntityManager())
-                .build();
+        PersistingJpaItemWriter persistingJpaItemWriter = new PersistingJpaItemWriter();
+        persistingJpaItemWriter.setEntityManagerFactory(writeDatabase.getWriteEntityManager());
+        return persistingJpaItemWriter;
     }
 
     private ItemReader<Vehicle> createReader(ReadDatabase readDatabase, String queryString) {
         return new JdbcCursorItemReaderBuilder<Vehicle>()
                 .name("databaseReader")
                 .dataSource(readDatabase.getDataSource())
-                .fetchSize(10)
+                .fetchSize(500)
                 .sql(queryString)
                 .driverSupportsAbsolute(true)
                 .rowMapper(new VehicleMapper())

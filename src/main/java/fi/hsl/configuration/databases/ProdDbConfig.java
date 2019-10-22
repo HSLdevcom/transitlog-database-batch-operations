@@ -3,6 +3,7 @@ package fi.hsl.configuration.databases;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.core.env.Environment;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
@@ -23,9 +24,20 @@ import java.util.Map;
         entityManagerFactoryRef = "prodEntityManager",
         transactionManagerRef = "prodTransactionManager"
 )
+@Profile(value = "default")
 public class ProdDbConfig {
     @Autowired
     private Environment env;
+
+    @Bean
+    public PlatformTransactionManager prodTransactionManager() {
+
+        JpaTransactionManager transactionManager
+                = new JpaTransactionManager();
+        transactionManager.setEntityManagerFactory(
+                prodEntityManager().getObject());
+        return transactionManager;
+    }
 
     @Bean
     public LocalContainerEntityManagerFactoryBean prodEntityManager() {
@@ -59,15 +71,5 @@ public class ProdDbConfig {
         dataSource.setPassword(env.getProperty("jdbc.pass"));
 
         return dataSource;
-    }
-
-    @Bean
-    public PlatformTransactionManager prodTransactionManager() {
-
-        JpaTransactionManager transactionManager
-                = new JpaTransactionManager();
-        transactionManager.setEntityManagerFactory(
-                prodEntityManager().getObject());
-        return transactionManager;
     }
 }

@@ -1,4 +1,4 @@
-package fi.hsl.configuration.databases;
+package fi.hsl.config;
 
 import com.zaxxer.hikari.HikariDataSource;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,19 +12,21 @@ import org.springframework.orm.jpa.JpaTransactionManager;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 import javax.sql.DataSource;
 import java.util.HashMap;
 
 @Configuration
 @PropertySource({"classpath:application.properties"})
+@EnableTransactionManagement
+@Profile(value = "integration-test")
 @EnableJpaRepositories(
         basePackages = "fi.hsl.domain",
         entityManagerFactoryRef = "devReadEntityManager",
         transactionManagerRef = "devReadTransactionManager"
 )
-@Profile(value = "default")
-public class DevReadDbConfig {
+public class H2ReadConfiguration {
     @Autowired
     private Environment env;
 
@@ -41,7 +43,7 @@ public class DevReadDbConfig {
     public LocalContainerEntityManagerFactoryBean devReadEntityManager() {
         LocalContainerEntityManagerFactoryBean em
                 = new LocalContainerEntityManagerFactoryBean();
-        em.setDataSource(devReadDataSource());
+        em.setDataSource(readDataSource());
         em.setPackagesToScan(
                 "fi.hsl.domain");
         HibernateJpaVendorAdapter vendorAdapter
@@ -58,8 +60,7 @@ public class DevReadDbConfig {
     }
 
     @Bean
-    public DataSource devReadDataSource() {
-
+    public DataSource readDataSource() {
         HikariDataSource dataSource
                 = new HikariDataSource();
         dataSource.setDriverClassName(
@@ -68,7 +69,8 @@ public class DevReadDbConfig {
         dataSource.setUsername(env.getProperty("jdbc.user"));
         dataSource.setPassword(env.getProperty("jdbc.pass"));
         dataSource.setAutoCommit(false);
-
         return dataSource;
+
     }
+
 }

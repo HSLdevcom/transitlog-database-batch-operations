@@ -1,4 +1,4 @@
-package fi.hsl.domain;
+package fi.hsl.features;
 
 
 import lombok.AllArgsConstructor;

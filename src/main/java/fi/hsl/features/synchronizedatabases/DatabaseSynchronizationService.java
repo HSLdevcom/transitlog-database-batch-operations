@@ -1,8 +1,8 @@
 package fi.hsl.features.synchronizedatabases;
 
-import fi.hsl.domain.Database;
-import fi.hsl.domain.DatabasePoolFactory;
-import fi.hsl.domain.ReadWriteDatabasePool;
+import fi.hsl.features.Database;
+import fi.hsl.features.DatabasePoolFactory;
+import fi.hsl.features.ReadWriteDatabasePool;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.JobParametersInvalidException;
 import org.springframework.batch.core.repository.JobExecutionAlreadyRunningException;

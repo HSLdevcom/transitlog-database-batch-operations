@@ -1,6 +1,9 @@
 package fi.hsl.features.splitdatabasetables;
 
-import fi.hsl.domain.*;
+import fi.hsl.domain.Database;
+import fi.hsl.domain.ReadDatabase;
+import fi.hsl.domain.Vehicle;
+import fi.hsl.domain.WriteDatabase;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.JobParameters;
@@ -22,9 +25,6 @@ import org.springframework.batch.item.support.CompositeItemProcessor;
 import java.math.BigInteger;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Set;
-
-import static fi.hsl.domain.Vehicle.EventType.*;
 
 public class DatabaseSplitJob {
     private final Database.ReadSqlQuery readSqlQuery;
@@ -59,7 +59,7 @@ public class DatabaseSplitJob {
                 .<Vehicle, Object>chunk(100)
                 .reader(createReader(readDatabase, executableSqlQuery.getSqlQuery()))
                 .processor(new SplitJobLoggingProcessor())
-                .processor(new SplitJobDomainMappingProcessor())
+                .processor(new DomainMappingProcessor())
                 .writer(createWriter(writeDatabase))
                 .build();
 
@@ -71,7 +71,7 @@ public class DatabaseSplitJob {
                 .build();
     }
 
-    private ItemReader<Vehicle> createReader(ReadDatabase readDatabase, String queryString) throws SQLException {
+    private ItemReader<Vehicle> createReader(ReadDatabase readDatabase, String queryString) {
         return new JdbcCursorItemReaderBuilder<Vehicle>()
                 .name("databaseReader")
                 .dataSource(readDatabase.getDataSource())
@@ -86,7 +86,7 @@ public class DatabaseSplitJob {
     @Slf4j
     private static class SplitJobLoggingProcessor extends CompositeItemProcessor<Vehicle, Vehicle> {
         @Override
-        public Vehicle process(Vehicle item) throws Exception {
+        public Vehicle process(Vehicle item) {
             log.info("Found object: {}", item);
             return item;
         }
@@ -141,25 +141,4 @@ public class DatabaseSplitJob {
         }
     }
 
-    private class SplitJobDomainMappingProcessor extends CompositeItemProcessor<Vehicle, Object> {
-        @Override
-        public Object process(Vehicle item) {
-            Set<Vehicle.EventType> stopEvents = Set.of(new Vehicle.EventType[]{DUE, ARR, ARS, PDE, DEP, PAS, WAIT});
-            Set<Vehicle.EventType> lightPriorityEvents = Set.of(new Vehicle.EventType[]{TLR, TLA});
-            Set<Vehicle.EventType> otherEvents = Set.of(new Vehicle.EventType[]{DOO, DOC, DA, DOUT, BA, BOUT, VJA, VJOUT});
-            //Map to a new domain object here for persistence
-            if (item.getEvent_type().equals(Vehicle.EventType.VP) && item.getJourney_type() == Vehicle.JourneyType.journey) {
-                return new VehiclePosition(item);
-            } else if (stopEvents.contains(item.getEvent_type())) {
-                return new StopEvent(item);
-            } else if (lightPriorityEvents.contains(item.getEvent_type())) {
-                return new LightPriorityEvent(item);
-            } else if (otherEvents.contains(item.getEvent_type())) {
-                return new OtherEvent(item);
-            } else if (item.getEvent_type().equals(VP) && (item.getJourney_type().equals(Vehicle.JourneyType.deadrun) || item.getJourney_type().equals(Vehicle.JourneyType.signoff))) {
-                return new UnsignedEvent(item);
-            }
-            return null;
-        }
-    }
 }

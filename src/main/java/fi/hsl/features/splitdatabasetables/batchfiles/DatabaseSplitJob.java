@@ -4,6 +4,7 @@ import fi.hsl.configuration.databases.Database;
 import fi.hsl.configuration.databases.ReadDatabase;
 import fi.hsl.configuration.databases.WriteDatabase;
 import fi.hsl.domain.Vehicle;
+import fi.hsl.features.splitdatabasetables.batchfiles.filewriters.BufferedPipingCSVWriterFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.*;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
@@ -33,7 +34,6 @@ public class DatabaseSplitJob {
     private final JobRepository jobRepository;
     private final JobParameters jobStartDate;
     private final JobLauncher jobLauncher;
-    private final PipingCSVWriter pipingCSVMapper;
 
     public DatabaseSplitJob(Database.ReadSqlQuery readSqlQuery, ReadDatabase readDatabase, WriteDatabase writeDatabase, JobRepository jobRepository, JobParameters jobStartDate, JobLauncher jobLauncher) throws IOException {
         this.readSqlQuery = readSqlQuery;
@@ -42,7 +42,6 @@ public class DatabaseSplitJob {
         this.jobRepository = jobRepository;
         this.jobStartDate = jobStartDate;
         this.jobLauncher = jobLauncher;
-        this.pipingCSVMapper = new PipingCSVWriter(new FileWriterProvider());
     }
 
     public void launchJob() throws JobParametersInvalidException, JobExecutionAlreadyRunningException, JobRestartException, JobInstanceAlreadyCompleteException, SQLException, IOException {
@@ -125,7 +124,7 @@ public class DatabaseSplitJob {
     }
 
     private ItemWriter<? super Object> createWriter() throws IOException {
-        return pipingCSVMapper;
+        return BufferedPipingCSVWriterFactory.createItemWriter();
     }
 
     private ItemReader<Vehicle> createReader(ReadDatabase readDatabase, String queryString) {

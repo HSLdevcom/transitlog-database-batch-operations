@@ -1,4 +1,4 @@
-package fi.hsl.features.splitdatabasetables.batchfiles;
+package fi.hsl.features.splitdatabasetables.batchfiles.filewriters;
 
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
@@ -8,9 +8,9 @@ import org.springframework.batch.item.ItemWriter;
 import java.io.IOException;
 import java.util.List;
 
-import static fi.hsl.features.splitdatabasetables.batchfiles.FileWriterProvider.FilePath.*;
+import static fi.hsl.features.splitdatabasetables.batchfiles.filewriters.FileWriterProvider.FilePath.*;
 
-public class PipingCSVWriter implements ItemWriter<Object> {
+class PipingCSVWriter implements ItemWriter<Object> {
 
     private final CsvMapper csvMapper;
     private final CsvSchema vehiclePositionSchema;
@@ -18,11 +18,11 @@ public class PipingCSVWriter implements ItemWriter<Object> {
     private final CsvSchema otherEventSchema;
     private final CsvSchema unsignedEventSchema;
     private final CsvSchema lightPriorityEventSchema;
-    private final FileWriterProvider fileWriterProvider;
+    private final WriterProvider fileWriterProvider;
 
-    PipingCSVWriter(FileWriterProvider fileWriterProvider) throws IOException {
+    PipingCSVWriter(WriterProvider writerProvider) throws IOException {
 
-        this.fileWriterProvider = fileWriterProvider;
+        this.fileWriterProvider = writerProvider;
         csvMapper = new CsvMapper();
 
         //Open file system hooks first

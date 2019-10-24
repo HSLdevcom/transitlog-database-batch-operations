@@ -1,4 +1,4 @@
-package fi.hsl.features.splitdatabasetables.batchfiles;
+package fi.hsl.features.splitdatabasetables.batchfiles.filewriters;
 
 import fi.hsl.domain.Event;
 import lombok.Data;
@@ -11,7 +11,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
-class FileWriterProvider {
+class FileWriterProvider implements WriterProvider {
 
     private final Map<FilePath, Optional<FileName>> lastKnownFileName;
 
@@ -21,7 +21,8 @@ class FileWriterProvider {
         this.lastKnownFileName = new ConcurrentHashMap<>();
     }
 
-    FileWriter provideFileWriter(Event item, FilePath filePath) throws IOException {
+    @Override
+    public FileWriter provideFileWriter(Event item, FilePath filePath) throws IOException {
         FileNameDateParts fileNameDateParts = createFileNameDateParts(item);
         Optional<FileName> fileName = lastKnownFileName.get(filePath);
         if (fileName != null && fileName.isPresent()) {

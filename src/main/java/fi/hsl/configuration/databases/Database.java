@@ -1,4 +1,4 @@
-package fi.hsl.features;
+package fi.hsl.configuration.databases;
 
 
 import lombok.AllArgsConstructor;

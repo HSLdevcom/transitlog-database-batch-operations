@@ -1,6 +1,6 @@
-package fi.hsl.features;
+package fi.hsl.configuration.databases;
 
-import fi.hsl.features.splitdatabasetables.DatabaseSplitJob;
+import fi.hsl.features.splitdatabasetables.batchfiles.DatabaseSplitJob;
 import fi.hsl.features.synchronizedatabases.DatabaseSyncJob;
 import org.springframework.batch.core.JobParameter;
 import org.springframework.batch.core.JobParameters;
@@ -10,6 +10,7 @@ import org.springframework.batch.core.repository.JobExecutionAlreadyRunningExcep
 import org.springframework.batch.core.repository.JobInstanceAlreadyCompleteException;
 import org.springframework.batch.core.repository.JobRestartException;
 
+import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Date;
 import java.util.Map;
@@ -36,7 +37,7 @@ public class ReadWriteDatabasePool extends Database {
         databaseSyncJob.launchJob();
     }
 
-    public void split(ReadWriteDatabasePool to, ReadSqlQuery readSqlQuery) throws JobParametersInvalidException, JobExecutionAlreadyRunningException, JobRestartException, JobInstanceAlreadyCompleteException, SQLException {
+    public void split(ReadWriteDatabasePool to, ReadSqlQuery readSqlQuery) throws JobParametersInvalidException, JobExecutionAlreadyRunningException, JobRestartException, JobInstanceAlreadyCompleteException, SQLException, IOException {
         JobParameters jobStartDate = new JobParameters(Map.of("jobStartDate", new JobParameter(new Date())));
         DatabaseSplitJob databaseSplitJob = new DatabaseSplitJob(readSqlQuery, readReplica, to.writeReplica, writeReplica.getJobRepository(), jobStartDate, jobLauncher);
         databaseSplitJob.launchJob();

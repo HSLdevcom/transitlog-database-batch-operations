@@ -1,4 +1,4 @@
-package fi.hsl.features.splitdatabasetables;
+package fi.hsl.features.splitdatabasetables.batchfiles;
 
 import fi.hsl.domain.*;
 import org.springframework.batch.item.support.CompositeItemProcessor;

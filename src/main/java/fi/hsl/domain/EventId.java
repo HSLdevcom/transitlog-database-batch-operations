@@ -6,6 +6,7 @@ import javax.persistence.Enumerated;
 import java.io.Serializable;
 import java.sql.Timestamp;
 import java.util.Objects;
+import java.util.UUID;
 
 @Embeddable
 public class EventId implements Serializable {
@@ -15,15 +16,17 @@ public class EventId implements Serializable {
     private Vehicle.EventType event_type;
     @Enumerated(EnumType.STRING)
     private Vehicle.JourneyType journey_type;
+    private UUID uuid;
 
     public EventId() {
     }
 
-    EventId(Timestamp tst, String unique_vehicle_id, Vehicle.EventType event_type, Vehicle.JourneyType journey_type) {
+    EventId(Timestamp tst, String unique_vehicle_id, Vehicle.EventType event_type, Vehicle.JourneyType journey_type, UUID uuid) {
         this.tst = tst;
         this.unique_vehicle_id = unique_vehicle_id;
         this.event_type = event_type;
         this.journey_type = journey_type;
+        this.uuid = uuid;
     }
 
     @Override

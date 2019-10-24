@@ -1,19 +1,38 @@
 package fi.hsl.domain;
 
 
-import org.springframework.data.domain.Persistable;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 
-import javax.persistence.*;
+import javax.persistence.Column;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
+import javax.persistence.MappedSuperclass;
 import java.math.BigInteger;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Date;
+import java.util.UUID;
 
 @MappedSuperclass
-abstract class Event implements Persistable<EventId> {
-    @Embedded
-    @Id
-    private EventId event;
+@EqualsAndHashCode
+@JsonSubTypes({
+        @JsonSubTypes.Type(value = VehiclePosition.class, name = "vehicleposition"),
+        @JsonSubTypes.Type(value = LightPriorityEvent.class, name = "lightpriorityevent"),
+        @JsonSubTypes.Type(value = OtherEvent.class, name = "otherevent"),
+        @JsonSubTypes.Type(value = StopEvent.class, name = "stopevent"),
+        @JsonSubTypes.Type(value = UnsignedEvent.class, name = "unsignedevent")
+})
+@Data
+public abstract class Event {
+    private Timestamp tst;
+    private String unique_vehicle_id;
+    @Enumerated(EnumType.STRING)
+    private Vehicle.EventType event_type;
+    @Enumerated(EnumType.STRING)
+    private Vehicle.JourneyType journey_type;
+    private UUID uuid;
     private Timestamp received_at;
     private String topic_prefix;
     private String topic_version;
@@ -54,8 +73,13 @@ abstract class Event implements Persistable<EventId> {
     private Integer stop;
     private String route;
     private Integer occu;
+
     public Event(Vehicle item) {
-        this.event = new EventId(item.getTst(), item.getUnique_vehicle_id(), item.getEvent_type(), item.getJourney_type());
+        this.tst = item.getTst();
+        this.unique_vehicle_id = item.getUnique_vehicle_id();
+        this.event_type = item.getEvent_type();
+        this.journey_type = item.getJourney_type();
+        this.uuid = UUID.randomUUID();
         this.received_at = item.getReceived_at();
         this.topic_prefix = item.getTopic_prefix();
         this.topic_version = item.getTopic_version();
@@ -93,28 +117,8 @@ abstract class Event implements Persistable<EventId> {
         this.route = item.getRoute();
         this.occu = item.getOccu();
     }
+
     public Event() {
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        return false;
-    }
-
-    @Override
-    public int hashCode() {
-        return super.hashCode();
-    }
-
-    @Override
-    public EventId getId() {
-        return event;
-    }
-
-    @Override
-    public boolean isNew() {
-        //Force JPA to ASSUME ENTITY IS NEW to delegate conflict checking to database
-        return true;
     }
 
 

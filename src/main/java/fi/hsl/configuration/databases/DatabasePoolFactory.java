@@ -1,4 +1,4 @@
-package fi.hsl.features;
+package fi.hsl.configuration.databases;
 
 import org.hibernate.cfg.NotYetImplementedException;
 import org.springframework.batch.core.launch.JobLauncher;
@@ -10,7 +10,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 
 import javax.persistence.EntityManagerFactory;
 
-import static fi.hsl.features.Database.DatabaseInstance.*;
+import static fi.hsl.configuration.databases.Database.DatabaseInstance.*;
 
 @Component
 public

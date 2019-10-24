@@ -4,9 +4,9 @@ import fi.hsl.DatabaseSynchronizationGateway;
 import fi.hsl.config.DummyBeans;
 import fi.hsl.config.H2ReadConfiguration;
 import fi.hsl.config.H2WriteConfiguration;
-import fi.hsl.features.Database;
-import fi.hsl.features.DatabasePoolFactory;
-import fi.hsl.features.ReadWriteDatabasePool;
+import fi.hsl.configuration.databases.Database;
+import fi.hsl.configuration.databases.DatabasePoolFactory;
+import fi.hsl.configuration.databases.ReadWriteDatabasePool;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -21,6 +21,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import java.io.IOException;
 import java.sql.SQLException;
 
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -42,7 +43,7 @@ public class SplitDatabaseBatchFunctionalTest {
 
     @Test
     @Ignore
-    public void splitBatchJob_succesfulRun_shouldSplitTables() throws SQLException, JobParametersInvalidException, JobExecutionAlreadyRunningException, JobRestartException, JobInstanceAlreadyCompleteException {
+    public void splitBatchJob_succesfulRun_shouldSplitTables() throws SQLException, JobParametersInvalidException, JobExecutionAlreadyRunningException, JobRestartException, JobInstanceAlreadyCompleteException, IOException {
         from.split(to, new Database.ReadSqlQuery("select * from vehicles", null));
     }
 }

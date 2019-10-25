@@ -24,25 +24,26 @@ class CachedWriterProvider extends WriterProviderDecorator {
         Calendar calendar = CalendarUtil.getCalendar(item);
         int eventMonth = calendar.get(Calendar.MONTH);
         int eventDay = calendar.get(Calendar.DAY_OF_MONTH);
+        int eventHour = calendar.get(Calendar.HOUR);
 
         //Return a new file writer if needed
         if (writerContext == null) {
             //Provide a new writer for this file path
-            return instantiateNewWriter(item, eventType, eventMonth, eventDay);
+            return instantiateNewWriter(item, eventType, eventMonth, eventDay, eventHour);
         }
         WriterContext latestFilePathWriter = latestKnownWriters.get(eventType);
 
-        if (latestFilePathWriter.cantBeReused(eventDay, eventMonth)) {
-            return instantiateNewWriter(item, eventType, eventMonth, eventDay);
+        if (latestFilePathWriter.cantBeReused(eventDay, eventMonth, eventHour)) {
+            return instantiateNewWriter(item, eventType, eventMonth, eventDay, eventHour);
         }
         //Reuse an old writer
         return latestFilePathWriter.writer;
 
     }
 
-    private Writer instantiateNewWriter(Event item, TableType tableType, int eventMonth, int eventDay) throws IOException {
+    private Writer instantiateNewWriter(Event item, TableType tableType, int month, int day, int hour) throws IOException {
         Writer instantiatedWriter = super.provideFileWriter(item, tableType);
-        latestKnownWriters.put(tableType, new WriterContext(instantiatedWriter, eventDay, eventMonth));
+        latestKnownWriters.put(tableType, new WriterContext(instantiatedWriter, month, day, hour));
         return instantiatedWriter;
     }
 
@@ -52,12 +53,13 @@ class CachedWriterProvider extends WriterProviderDecorator {
         private Writer writer;
         private int day;
         private int month;
+        private int hour;
 
-        boolean cantBeReused(int eventDay, int eventMonth) throws IOException {
+        boolean cantBeReused(int eventDay, int eventMonth, int eventHour) throws IOException {
             if (isClosed()) {
                 return true;
             }
-            if (isOld(eventDay, eventMonth)) {
+            if (isOld(eventDay, eventMonth, eventHour)) {
                 //Remember to close the writer to avoid clogging up JVM
                 writer.close();
                 return true;
@@ -74,8 +76,8 @@ class CachedWriterProvider extends WriterProviderDecorator {
             return false;
         }
 
-        private boolean isOld(int eventDay, int eventMonth) {
-            return day != eventDay && month != eventMonth;
+        private boolean isOld(int eventDay, int eventMonth, int eventHour) {
+            return day != eventDay && month != eventMonth && hour != eventHour;
         }
     }
 }

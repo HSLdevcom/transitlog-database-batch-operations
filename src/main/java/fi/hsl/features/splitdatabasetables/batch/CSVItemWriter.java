@@ -29,7 +29,6 @@ class CSVItemWriter implements ItemWriter<Event> {
         csvMapper.disable(JsonGenerator.Feature.AUTO_CLOSE_TARGET);
 
         //Create schmenas first for the csvMapper
-
         lightPriorityEventSchema = csvMapper.schemaFor(LightPriorityEvent.class);
         unsignedEventSchema = csvMapper.schemaFor(UnsignedEvent.class);
         otherEventSchema = csvMapper.schemaFor(OtherEvent.class);
@@ -38,9 +37,10 @@ class CSVItemWriter implements ItemWriter<Event> {
 
     }
 
+    //Sequential write to disk is faster
     @Override
-    public void write(List<? extends Event> items) throws Exception {
-        items.stream()
+    public synchronized void write(List<? extends Event> items) throws Exception {
+        items
                 .forEach(item -> {
                     try {
                         if (item.getTableType().equals(TableType.VEHICLEPOSITION)) {

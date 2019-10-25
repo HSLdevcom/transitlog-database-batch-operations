@@ -21,6 +21,7 @@ import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.item.database.builder.JdbcCursorItemReaderBuilder;
 import org.springframework.batch.item.support.SynchronizedItemStreamReader;
 import org.springframework.batch.item.support.builder.SynchronizedItemStreamReaderBuilder;
+import org.springframework.core.task.SimpleAsyncTaskExecutor;
 
 import java.io.IOException;
 import java.math.BigInteger;
@@ -58,6 +59,8 @@ public class DatabaseSplitJob {
 
     private Step createSplitJobReadStep(ReadDatabase readDatabase, WriteDatabase writeDatabase, Database.ReadSqlQuery executableSqlQuery) throws SQLException, IOException {
         StepBuilderFactory stepBuilderFactory = new StepBuilderFactory(jobRepository, writeDatabase.getWriteTransactionManager());
+        SimpleAsyncTaskExecutor taskExecutor = new SimpleAsyncTaskExecutor();
+        taskExecutor.setConcurrencyLimit(16);
         return stepBuilderFactory.get("splitJobReadFromDatabase")
                 .<Vehicle, Event>chunk(1000000)
                 .reader(createReader(readDatabase, executableSqlQuery.getSqlQuery()))
@@ -73,7 +76,7 @@ public class DatabaseSplitJob {
 
                     @Override
                     public void afterWrite(List<? extends Event> items) {
-                        log.info("Time taken to execute batch: {} ms of size: {}", System.currentTimeMillis() - timeNow, items.size());
+                        log.trace("Time taken to execute batch: {} ms of size: {}", System.currentTimeMillis() - timeNow, items.size());
                     }
 
                     @Override
@@ -93,7 +96,7 @@ public class DatabaseSplitJob {
 
                     @Override
                     public void afterChunk(ChunkContext context) {
-                        log.info("Chunk execution time: {} ms", System.currentTimeMillis() - timeNow);
+                        log.trace("Chunk execution time: {} ms", System.currentTimeMillis() - timeNow);
                     }
 
                     @Override
@@ -103,6 +106,7 @@ public class DatabaseSplitJob {
                 })
                 //Do nothing on duplicates
                 .skipPolicy(new DuplicateViolationPolicy())
+                .taskExecutor(taskExecutor)
                 .build();
 
     }

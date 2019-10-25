@@ -11,6 +11,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.Calendar;
 import java.util.Map;
 import java.util.Optional;
@@ -46,6 +47,7 @@ class FileWriterProvider implements WriterProvider {
 
     @Data
     private class FileName {
+        private final Integer hour;
         private Integer day;
         private Integer month;
         private TableType tableType;
@@ -53,6 +55,8 @@ class FileWriterProvider implements WriterProvider {
         FileName(FileNameDateParts fileNameDateParts, TableType tableType) {
             this.day = fileNameDateParts.day;
             this.month = fileNameDateParts.month;
+            this.hour = fileNameDateParts.hour;
+
             this.tableType = tableType;
         }
 
@@ -67,7 +71,7 @@ class FileWriterProvider implements WriterProvider {
             absolutePathFile.createNewFile();
 
             Path path = Paths.get(absolutePathFile.toURI());
-            return Files.newBufferedWriter(path, Charset.defaultCharset());
+            return Files.newBufferedWriter(path, Charset.defaultCharset(), StandardOpenOption.APPEND);
         }
 
         private String generateFolderPath() {
@@ -75,17 +79,19 @@ class FileWriterProvider implements WriterProvider {
         }
 
         String generateAbsoluteFileName() {
-            return VOLUME_PREFIX + tableType.toString() + "/" + tableType.toString() + "_" + day + "_" + month + ".csv";
+            return VOLUME_PREFIX + tableType.toString() + "/" + tableType.toString() + "_" + day + "_" + month + "_" + hour + "_" + ".csv";
         }
     }
 
     public class FileNameDateParts {
         private Integer day;
         private Integer month;
+        private Integer hour;
 
         FileNameDateParts(Calendar calendar) {
             this.day = calendar.get(Calendar.DAY_OF_MONTH);
             this.month = calendar.get(Calendar.MONTH);
+            this.hour = calendar.get(Calendar.HOUR_OF_DAY);
         }
 
     }

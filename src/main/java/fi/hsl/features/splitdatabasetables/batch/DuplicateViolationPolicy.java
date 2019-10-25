@@ -1,4 +1,4 @@
-package fi.hsl.features.splitdatabasetables.batchfiles;
+package fi.hsl.features.splitdatabasetables.batch;
 
 import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.batch.core.step.skip.SkipLimitExceededException;

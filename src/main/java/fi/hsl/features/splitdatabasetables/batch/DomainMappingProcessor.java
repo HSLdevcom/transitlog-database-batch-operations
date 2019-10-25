@@ -1,18 +1,31 @@
-package fi.hsl.features.splitdatabasetables.batchfiles;
+package fi.hsl.features.splitdatabasetables.batch;
 
 import fi.hsl.domain.*;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.item.support.CompositeItemProcessor;
 
 import java.util.Set;
 
 import static fi.hsl.domain.Vehicle.EventType.*;
 
-public class DomainMappingProcessor extends CompositeItemProcessor<Vehicle, Object> {
+@Slf4j
+public class DomainMappingProcessor extends CompositeItemProcessor<Vehicle, Event> {
+
+    private final Set<Vehicle.EventType> stopEvents;
+    private final Set<Vehicle.EventType> lightPriorityEvents;
+    private final Set<Vehicle.EventType> otherEvents;
+    private int i;
+    private long startTime;
+    private long wholeBatchTime;
+
+    public DomainMappingProcessor() {
+        stopEvents = Set.of(new Vehicle.EventType[]{DUE, ARR, ARS, PDE, DEP, PAS, WAIT});
+        lightPriorityEvents = Set.of(new Vehicle.EventType[]{TLR, TLA});
+        otherEvents = Set.of(new Vehicle.EventType[]{DOO, DOC, DA, DOUT, BA, BOUT, VJA, VJOUT});
+    }
+
     @Override
-    public Object process(Vehicle item) {
-        Set<Vehicle.EventType> stopEvents = Set.of(new Vehicle.EventType[]{DUE, ARR, ARS, PDE, DEP, PAS, WAIT});
-        Set<Vehicle.EventType> lightPriorityEvents = Set.of(new Vehicle.EventType[]{TLR, TLA});
-        Set<Vehicle.EventType> otherEvents = Set.of(new Vehicle.EventType[]{DOO, DOC, DA, DOUT, BA, BOUT, VJA, VJOUT});
+    public Event process(Vehicle item) {
         //Map to a new domain object here for persistence
         if (item.getEvent_type().equals(VP) && item.getJourney_type() == Vehicle.JourneyType.journey) {
             return new VehiclePosition(item);

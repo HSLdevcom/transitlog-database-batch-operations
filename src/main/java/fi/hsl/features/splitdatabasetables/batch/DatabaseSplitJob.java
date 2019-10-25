@@ -1,10 +1,11 @@
-package fi.hsl.features.splitdatabasetables.batchfiles;
+package fi.hsl.features.splitdatabasetables.batch;
 
 import fi.hsl.configuration.databases.Database;
 import fi.hsl.configuration.databases.ReadDatabase;
 import fi.hsl.configuration.databases.WriteDatabase;
+import fi.hsl.domain.Event;
 import fi.hsl.domain.Vehicle;
-import fi.hsl.features.splitdatabasetables.batchfiles.filewriters.BufferedPipingCSVWriterFactory;
+import fi.hsl.features.splitdatabasetables.batch.filewriters.CachedWriterFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.*;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
@@ -15,10 +16,11 @@ import org.springframework.batch.core.repository.JobInstanceAlreadyCompleteExcep
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.repository.JobRestartException;
 import org.springframework.batch.core.scope.context.ChunkContext;
-import org.springframework.batch.item.ItemReader;
+import org.springframework.batch.item.ItemStreamReader;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.item.database.builder.JdbcCursorItemReaderBuilder;
-import org.springframework.batch.item.support.CompositeItemProcessor;
+import org.springframework.batch.item.support.SynchronizedItemStreamReader;
+import org.springframework.batch.item.support.builder.SynchronizedItemStreamReaderBuilder;
 
 import java.io.IOException;
 import java.math.BigInteger;
@@ -57,44 +59,26 @@ public class DatabaseSplitJob {
     private Step createSplitJobReadStep(ReadDatabase readDatabase, WriteDatabase writeDatabase, Database.ReadSqlQuery executableSqlQuery) throws SQLException, IOException {
         StepBuilderFactory stepBuilderFactory = new StepBuilderFactory(jobRepository, writeDatabase.getWriteTransactionManager());
         return stepBuilderFactory.get("splitJobReadFromDatabase")
-                .<Vehicle, Object>chunk(200).listener(new ItemReadListener<>() {
-                    private long timeNow;
-
-                    @Override
-                    public void beforeRead() {
-                        this.timeNow = System.currentTimeMillis();
-                    }
-
-                    @Override
-                    public void afterRead(Vehicle item) {
-                        log.info("Read took: {} ms", System.currentTimeMillis() - timeNow);
-                    }
-
-                    @Override
-                    public void onReadError(Exception ex) {
-                        log.error("Error was thrown", ex);
-                    }
-                })
+                .<Vehicle, Event>chunk(1000000)
                 .reader(createReader(readDatabase, executableSqlQuery.getSqlQuery()))
-                .processor(new SplitJobLoggingProcessor())
                 .processor(new DomainMappingProcessor())
                 .writer(createWriter())
                 .listener(new ItemWriteListener<>() {
                     private long timeNow;
 
                     @Override
-                    public void beforeWrite(List<?> items) {
+                    public void beforeWrite(List<? extends Event> items) {
                         this.timeNow = System.currentTimeMillis();
                     }
 
                     @Override
-                    public void afterWrite(List<?> items) {
-                        log.info("Time after writing batch: {} ms", System.currentTimeMillis() - timeNow);
+                    public void afterWrite(List<? extends Event> items) {
+                        log.info("Time taken to execute batch: {} ms of size: {}", System.currentTimeMillis() - timeNow, items.size());
                     }
 
                     @Override
-                    public void onWriteError(Exception exception, List<?> items) {
-                        log.info("Error thrown: {}", exception);
+                    public void onWriteError(Exception exception, List<? extends Event> items) {
+                        log.trace("Error thrown: {}", exception);
 
                     }
                 })
@@ -123,28 +107,22 @@ public class DatabaseSplitJob {
 
     }
 
-    private ItemWriter<? super Object> createWriter() throws IOException {
-        return BufferedPipingCSVWriterFactory.createItemWriter();
+    private ItemWriter<? super Event> createWriter() throws IOException {
+        return new CSVItemWriter(CachedWriterFactory.createFileWriterProvider());
     }
 
-    private ItemReader<Vehicle> createReader(ReadDatabase readDatabase, String queryString) {
-        return new JdbcCursorItemReaderBuilder<Vehicle>()
+    private SynchronizedItemStreamReader<Vehicle> createReader(ReadDatabase readDatabase, String queryString) {
+        ItemStreamReader<Vehicle> jdbcCursorItemReader = new JdbcCursorItemReaderBuilder<Vehicle>()
                 .name("databaseReader")
                 .dataSource(readDatabase.getDataSource())
-                .fetchSize(1000)
+                .fetchSize(1000000)
                 .sql(queryString)
                 .driverSupportsAbsolute(true)
                 .rowMapper(new VehicleMapper())
                 .build();
-    }
-
-    @Slf4j
-    private static class SplitJobLoggingProcessor extends CompositeItemProcessor<Vehicle, Vehicle> {
-        @Override
-        public Vehicle process(Vehicle item) {
-            log.info("Found object: {}", item);
-            return item;
-        }
+        return new SynchronizedItemStreamReaderBuilder<Vehicle>()
+                .delegate(jdbcCursorItemReader)
+                .build();
 
     }
 

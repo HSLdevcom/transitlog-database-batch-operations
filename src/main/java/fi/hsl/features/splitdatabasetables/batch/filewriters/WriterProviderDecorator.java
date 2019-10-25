@@ -1,6 +1,7 @@
-package fi.hsl.features.splitdatabasetables.batchfiles.filewriters;
+package fi.hsl.features.splitdatabasetables.batch.filewriters;
 
 import fi.hsl.domain.Event;
+import fi.hsl.domain.TableType;
 
 import java.io.IOException;
 import java.io.Writer;
@@ -13,7 +14,7 @@ abstract class WriterProviderDecorator implements WriterProvider {
     }
 
     @Override
-    public Writer provideFileWriter(Event item, FileWriterProvider.FilePath filePath) throws IOException {
-        return writerProviderToDecorate.provideFileWriter(item, filePath);
+    public Writer provideFileWriter(Event item, TableType tableType) throws IOException {
+        return writerProviderToDecorate.provideFileWriter(item, tableType);
     }
 }

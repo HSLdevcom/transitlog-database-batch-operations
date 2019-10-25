@@ -3,7 +3,7 @@ package fi.hsl.domain;
 
 public class StopEvent extends Event {
     public StopEvent(Vehicle item) {
-        super(item);
+        super(item, TableType.OTHEREVENT);
     }
 
     public StopEvent() {

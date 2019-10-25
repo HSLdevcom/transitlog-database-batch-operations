@@ -1,6 +1,6 @@
 package fi.hsl.configuration.databases;
 
-import fi.hsl.features.splitdatabasetables.batchfiles.DatabaseSplitJob;
+import fi.hsl.features.splitdatabasetables.batch.DatabaseSplitJob;
 import fi.hsl.features.synchronizedatabases.DatabaseSyncJob;
 import org.springframework.batch.core.JobParameter;
 import org.springframework.batch.core.JobParameters;

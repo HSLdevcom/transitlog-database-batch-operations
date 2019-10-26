@@ -1,11 +1,12 @@
-package fi.hsl.features.splitdatabasetables.batch;
+package fi.hsl.features.splitdatabasetables;
 
+import fi.hsl.common.batch.DomainMappingProcessor;
+import fi.hsl.common.batch.DuplicateViolationPolicy;
 import fi.hsl.configuration.databases.Database;
 import fi.hsl.configuration.databases.ReadDatabase;
 import fi.hsl.configuration.databases.WriteDatabase;
 import fi.hsl.domain.Event;
 import fi.hsl.domain.Vehicle;
-import fi.hsl.features.splitdatabasetables.batch.filewriters.CachedWriterFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.*;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
@@ -28,6 +29,8 @@ import java.math.BigInteger;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
+
+import static fi.hsl.common.batch.CSVWriterFactory.createCSVItemWriter;
 
 @Slf4j
 public class DatabaseSplitJob {
@@ -62,7 +65,7 @@ public class DatabaseSplitJob {
         SimpleAsyncTaskExecutor taskExecutor = new SimpleAsyncTaskExecutor();
         taskExecutor.setConcurrencyLimit(16);
         return stepBuilderFactory.get("splitJobReadFromDatabase")
-                .<Vehicle, Event>chunk(1000000)
+                .<Vehicle, Event>chunk(1000)
                 .reader(createReader(readDatabase, executableSqlQuery.getSqlQuery()))
                 .processor(new DomainMappingProcessor())
                 .writer(createWriter())
@@ -112,14 +115,14 @@ public class DatabaseSplitJob {
     }
 
     private ItemWriter<? super Event> createWriter() throws IOException {
-        return new CSVItemWriter(CachedWriterFactory.createFileWriterProvider());
+        return createCSVItemWriter();
     }
 
     private SynchronizedItemStreamReader<Vehicle> createReader(ReadDatabase readDatabase, String queryString) {
         ItemStreamReader<Vehicle> jdbcCursorItemReader = new JdbcCursorItemReaderBuilder<Vehicle>()
                 .name("databaseReader")
                 .dataSource(readDatabase.getDataSource())
-                .fetchSize(1000000)
+                .fetchSize(1000)
                 .sql(queryString)
                 .driverSupportsAbsolute(true)
                 .rowMapper(new VehicleMapper())

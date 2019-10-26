@@ -1,7 +1,7 @@
 package fi.hsl.features.splitdatabasetables;
 
+import fi.hsl.common.batch.DomainMappingProcessor;
 import fi.hsl.domain.*;
-import fi.hsl.features.splitdatabasetables.batch.DomainMappingProcessor;
 import org.junit.Before;
 import org.junit.Test;
 

@@ -1,10 +1,10 @@
-package fi.hsl.features.splitdatabasetables.batch;
+package fi.hsl.common.batch;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
+import fi.hsl.common.batch.filewriters.WriterProvider;
 import fi.hsl.domain.*;
-import fi.hsl.features.splitdatabasetables.batch.filewriters.WriterProvider;
 import org.springframework.batch.item.ItemWriter;
 
 import java.io.IOException;

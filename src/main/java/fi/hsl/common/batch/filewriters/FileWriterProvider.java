@@ -1,4 +1,4 @@
-package fi.hsl.features.splitdatabasetables.batch.filewriters;
+package fi.hsl.common.batch.filewriters;
 
 import fi.hsl.domain.Event;
 import fi.hsl.domain.TableType;
@@ -79,7 +79,7 @@ class FileWriterProvider implements WriterProvider {
         }
 
         String generateAbsoluteFileName() {
-            return VOLUME_PREFIX + tableType.toString() + "/" + tableType.toString() + "_" + day + "_" + month + "_" + hour + "_" + ".csv";
+            return VOLUME_PREFIX + tableType.toString() + "/" + tableType.toString() + "_" + day + "_" + month + "_" + hour + ".csv";
         }
     }
 

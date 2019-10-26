@@ -1,4 +1,4 @@
-package fi.hsl.features.splitdatabasetables.batch.filewriters;
+package fi.hsl.common.batch.filewriters;
 
 import java.io.IOException;
 

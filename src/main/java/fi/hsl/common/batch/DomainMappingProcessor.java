@@ -1,4 +1,4 @@
-package fi.hsl.features.splitdatabasetables.batch;
+package fi.hsl.common.batch;
 
 import fi.hsl.domain.*;
 import lombok.extern.slf4j.Slf4j;
@@ -14,9 +14,6 @@ public class DomainMappingProcessor extends CompositeItemProcessor<Vehicle, Even
     private final Set<Vehicle.EventType> stopEvents;
     private final Set<Vehicle.EventType> lightPriorityEvents;
     private final Set<Vehicle.EventType> otherEvents;
-    private int i;
-    private long startTime;
-    private long wholeBatchTime;
 
     public DomainMappingProcessor() {
         stopEvents = Set.of(new Vehicle.EventType[]{DUE, ARR, ARS, PDE, DEP, PAS, WAIT});

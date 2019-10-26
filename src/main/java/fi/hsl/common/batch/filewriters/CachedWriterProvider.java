@@ -77,7 +77,7 @@ class CachedWriterProvider extends WriterProviderDecorator {
         }
 
         private boolean isOld(int eventDay, int eventMonth, int eventHour) {
-            return day != eventDay && month != eventMonth && hour != eventHour;
+            return day != eventDay || month != eventMonth || hour != eventHour;
         }
     }
 }

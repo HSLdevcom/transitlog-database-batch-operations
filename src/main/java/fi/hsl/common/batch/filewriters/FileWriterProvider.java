@@ -28,15 +28,19 @@ class FileWriterProvider implements WriterProvider {
     }
 
     @Override
-    public BufferedWriter provideFileWriter(Event item, TableType tableType) throws IOException {
+    public Writer buildFileWriter(Event item) throws IOException {
+        TableType tableType = item.getTableType();
         FileNameDateParts fileNameDateParts = createFileNameDateParts(item);
         Optional<FileName> fileName = lastKnownFileName.get(tableType);
         if (fileName != null && fileName.isPresent()) {
-            return fileName.get().createANIOWriterOnFile();
+            FileName oldFileName = fileName.get();
+            oldFileName.refreshIfNeeded(item);
+            return new Writer(oldFileName.generateAbsoluteFileName(), oldFileName.createANIOWriterOnFile());
         } else {
             FileName createdFile = new FileName(fileNameDateParts, tableType);
             lastKnownFileName.put(tableType, Optional.of(createdFile));
-            return createdFile.createANIOWriterOnFile();
+            BufferedWriter newWriterOnFile = createdFile.createANIOWriterOnFile();
+            return new Writer(createdFile.generateAbsoluteFileName(), newWriterOnFile);
         }
     }
 
@@ -47,7 +51,7 @@ class FileWriterProvider implements WriterProvider {
 
     @Data
     private class FileName {
-        private final Integer hour;
+        private Integer hour;
         private Integer day;
         private Integer month;
         private TableType tableType;
@@ -80,6 +84,13 @@ class FileWriterProvider implements WriterProvider {
 
         String generateAbsoluteFileName() {
             return VOLUME_PREFIX + tableType.toString() + "/" + tableType.toString() + "_" + day + "_" + month + "_" + hour + ".csv";
+        }
+
+        void refreshIfNeeded(Event item) {
+            Calendar calendar = CalendarUtil.getCalendar(item);
+            this.day = calendar.get(Calendar.DAY_OF_MONTH);
+            this.month = calendar.get(Calendar.MONTH);
+            this.hour = calendar.get(Calendar.HOUR);
         }
     }
 

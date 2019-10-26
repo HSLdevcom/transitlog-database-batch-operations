@@ -44,23 +44,23 @@ class CSVItemWriter implements ItemWriter<Event> {
                 .forEach(item -> {
                     try {
                         if (item.getTableType().equals(TableType.VEHICLEPOSITION)) {
-                            csvMapper.writer(vehiclePositionSchema).writeValue(fileWriterProvider.provideFileWriter(item, TableType.VEHICLEPOSITION), item);
+                            csvMapper.writer(vehiclePositionSchema).writeValue(fileWriterProvider.buildFileWriter(item).getWriterOnFile(), item);
                             return;
                         }
                         if (item.getTableType().equals(TableType.STOPEVENT)) {
-                            csvMapper.writer(stopEventSchema).writeValue(fileWriterProvider.provideFileWriter(item, TableType.STOPEVENT), item);
+                            csvMapper.writer(stopEventSchema).writeValue(fileWriterProvider.buildFileWriter(item).getWriterOnFile(), item);
                             return;
                         }
                         if (item.getTableType().equals(TableType.OTHEREVENT)) {
-                            csvMapper.writer(otherEventSchema).writeValue(fileWriterProvider.provideFileWriter(item, TableType.OTHEREVENT), item);
+                            csvMapper.writer(otherEventSchema).writeValue(fileWriterProvider.buildFileWriter(item).getWriterOnFile(), item);
                             return;
                         }
                         if (item.getTableType().equals(TableType.UNSIGNED)) {
-                            csvMapper.writer(unsignedEventSchema).writeValue(fileWriterProvider.provideFileWriter(item, TableType.UNSIGNED), item);
+                            csvMapper.writer(unsignedEventSchema).writeValue(fileWriterProvider.buildFileWriter(item).getWriterOnFile(), item);
                             return;
                         }
                         if (item.getTableType().equals(TableType.LIGHTPRIORITYEVENT)) {
-                            csvMapper.writer(lightPriorityEventSchema).writeValue(fileWriterProvider.provideFileWriter(item, TableType.LIGHTPRIORITYEVENT), item);
+                            csvMapper.writer(lightPriorityEventSchema).writeValue(fileWriterProvider.buildFileWriter(item).getWriterOnFile(), item);
                         }
                     } catch (IOException e) {
                         e.printStackTrace();

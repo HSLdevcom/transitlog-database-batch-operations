@@ -5,7 +5,6 @@ import fi.hsl.domain.TableType;
 import lombok.AllArgsConstructor;
 
 import java.io.IOException;
-import java.io.Writer;
 import java.util.Calendar;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -19,8 +18,8 @@ class CachedWriterProvider extends WriterProviderDecorator {
     }
 
     @Override
-    public Writer provideFileWriter(Event item, TableType eventType) throws IOException {
-        WriterContext writerContext = latestKnownWriters.get(eventType);
+    public Writer buildFileWriter(Event item) throws IOException {
+        WriterContext writerContext = latestKnownWriters.get(item.getTableType());
         Calendar calendar = CalendarUtil.getCalendar(item);
         int eventMonth = calendar.get(Calendar.MONTH);
         int eventDay = calendar.get(Calendar.DAY_OF_MONTH);
@@ -29,12 +28,12 @@ class CachedWriterProvider extends WriterProviderDecorator {
         //Return a new file writer if needed
         if (writerContext == null) {
             //Provide a new writer for this file path
-            return instantiateNewWriter(item, eventType, eventMonth, eventDay, eventHour);
+            return instantiateNewWriter(item, item.getTableType(), eventMonth, eventDay, eventHour);
         }
-        WriterContext latestFilePathWriter = latestKnownWriters.get(eventType);
+        WriterContext latestFilePathWriter = latestKnownWriters.get(item.getTableType());
 
         if (latestFilePathWriter.cantBeReused(eventDay, eventMonth, eventHour)) {
-            return instantiateNewWriter(item, eventType, eventMonth, eventDay, eventHour);
+            return instantiateNewWriter(item, item.getTableType(), eventMonth, eventDay, eventHour);
         }
         //Reuse an old writer
         return latestFilePathWriter.writer;
@@ -42,7 +41,7 @@ class CachedWriterProvider extends WriterProviderDecorator {
     }
 
     private Writer instantiateNewWriter(Event item, TableType tableType, int month, int day, int hour) throws IOException {
-        Writer instantiatedWriter = super.provideFileWriter(item, tableType);
+        Writer instantiatedWriter = super.buildFileWriter(item);
         latestKnownWriters.put(tableType, new WriterContext(instantiatedWriter, month, day, hour));
         return instantiatedWriter;
     }

@@ -1,7 +1,6 @@
 package fi.hsl.features.splitdatabasetables;
 
 import fi.hsl.common.batch.DomainMappingProcessor;
-import fi.hsl.common.batch.DuplicateViolationPolicy;
 import fi.hsl.configuration.databases.Database;
 import fi.hsl.configuration.databases.ReadDatabase;
 import fi.hsl.configuration.databases.WriteDatabase;
@@ -22,7 +21,7 @@ import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.item.database.builder.JdbcCursorItemReaderBuilder;
 import org.springframework.batch.item.support.SynchronizedItemStreamReader;
 import org.springframework.batch.item.support.builder.SynchronizedItemStreamReaderBuilder;
-import org.springframework.core.task.SimpleAsyncTaskExecutor;
+import org.springframework.retry.policy.SimpleRetryPolicy;
 
 import java.io.IOException;
 import java.math.BigInteger;
@@ -56,14 +55,12 @@ public class DatabaseSplitJob {
     }
 
     private Job createDatabaseSyncJob(Database.ReadSqlQuery executableHpqlQuery, ReadDatabase readDatabase, WriteDatabase writeDatabase) throws SQLException, IOException {
-        return new JobBuilderFactory(jobRepository).get("databaseSyncJob")
+        return new JobBuilderFactory(jobRepository).get("databaseSplitJob")
                 .flow(createSplitJobReadStep(readDatabase, writeDatabase, executableHpqlQuery)).end().build();
     }
 
     private Step createSplitJobReadStep(ReadDatabase readDatabase, WriteDatabase writeDatabase, Database.ReadSqlQuery executableSqlQuery) throws SQLException, IOException {
         StepBuilderFactory stepBuilderFactory = new StepBuilderFactory(jobRepository, writeDatabase.getWriteTransactionManager());
-        SimpleAsyncTaskExecutor taskExecutor = new SimpleAsyncTaskExecutor();
-        taskExecutor.setConcurrencyLimit(16);
         return stepBuilderFactory.get("splitJobReadFromDatabase")
                 .<Vehicle, Event>chunk(1000)
                 .reader(createReader(readDatabase, executableSqlQuery.getSqlQuery()))
@@ -108,8 +105,7 @@ public class DatabaseSplitJob {
                     }
                 })
                 //Do nothing on duplicates
-                .skipPolicy(new DuplicateViolationPolicy())
-                .taskExecutor(taskExecutor)
+                .retryPolicy(new SimpleRetryPolicy(Integer.MAX_VALUE))
                 .build();
 
     }

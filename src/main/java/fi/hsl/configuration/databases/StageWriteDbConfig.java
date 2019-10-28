@@ -24,7 +24,7 @@ import java.util.Map;
         entityManagerFactoryRef = "stageWriteEntityManager",
         transactionManagerRef = "stageWriteTransactionManager"
 )
-@Profile(value = "default")
+@Profile(value = {"default", "dev"})
 public class StageWriteDbConfig {
     @Autowired
     private Environment env;

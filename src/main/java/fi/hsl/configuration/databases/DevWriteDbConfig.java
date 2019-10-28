@@ -20,7 +20,7 @@ import java.util.HashMap;
         entityManagerFactoryRef = "devWriteEntityManager",
         transactionManagerRef = "devWriteTransactionManager"
 )
-@Profile(value = "default")
+@Profile(value = {"default", "dev"})
 public class DevWriteDbConfig {
     @Autowired
     private Environment env;

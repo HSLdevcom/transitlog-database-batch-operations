@@ -104,7 +104,6 @@ public class DatabaseSplitJob {
 
                     }
                 })
-                //Do nothing on duplicates
                 .retryPolicy(new SimpleRetryPolicy(Integer.MAX_VALUE))
                 .build();
 

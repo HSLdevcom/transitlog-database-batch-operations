@@ -24,7 +24,7 @@ import java.util.Map;
         entityManagerFactoryRef = "prodEntityManager",
         transactionManagerRef = "prodTransactionManager"
 )
-@Profile(value = "default")
+@Profile(value = {"default", "dev"})
 public class ProdDbConfig {
     @Autowired
     private Environment env;

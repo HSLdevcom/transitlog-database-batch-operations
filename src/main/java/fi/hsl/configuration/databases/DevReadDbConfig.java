@@ -23,7 +23,7 @@ import java.util.HashMap;
         entityManagerFactoryRef = "devReadEntityManager",
         transactionManagerRef = "devReadTransactionManager"
 )
-@Profile(value = "default")
+@Profile(value = {"default", "dev"})
 public class DevReadDbConfig {
     @Autowired
     private Environment env;

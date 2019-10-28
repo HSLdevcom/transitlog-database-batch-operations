@@ -1,7 +1,9 @@
 package fi.hsl.configuration.databases;
 
 import org.hibernate.cfg.NotYetImplementedException;
+import org.springframework.batch.core.explore.JobExplorer;
 import org.springframework.batch.core.launch.JobLauncher;
+import org.springframework.batch.core.launch.JobOperator;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -49,15 +51,19 @@ class DatabasePoolFactory {
     private EntityManagerFactory prodEntityManagerFactory;
     @Autowired
     private JobLauncher jobLauncher;
+    @Autowired
+    private JobExplorer jobExplorer;
+    @Autowired
+    private JobOperator jobOperator;
 
     public ReadWriteDatabasePool createPooledDatabaseInstance(Database.DatabaseInstance databaseInstance) {
         if (databaseInstance.equals(DEV)) {
             ReadDatabase readDatabase = new ReadDatabase(devReadEntityManager, devReadTransactionManager, jobLauncher);
-            WriteDatabase writeDatabase = new WriteDatabase(devWriteTransactionManager, devWriteEntityManager, jobLauncher, jobRepository);
-            return new ReadWriteDatabasePool(readDatabase, writeDatabase, jobLauncher);
+            WriteDatabase writeDatabase = new WriteDatabase(devWriteTransactionManager, devWriteEntityManager, jobLauncher, jobRepository, jobOperator);
+            return new ReadWriteDatabasePool(readDatabase, writeDatabase, jobLauncher, jobOperator);
         } else if (databaseInstance.equals(STAGE)) {
             return new ReadWriteDatabasePool(new ReadDatabase(stageReadEntityManagerFactory, stageWriteTransactionManager, jobLauncher),
-                    new WriteDatabase(stageWriteTransactionManager, stageWriteEntityManagerFactory, jobLauncher, jobRepository), jobLauncher);
+                    new WriteDatabase(stageWriteTransactionManager, stageWriteEntityManagerFactory, jobLauncher, jobRepository, jobOperator), jobLauncher, jobOperator);
         } else if (databaseInstance.equals(PROD)) {
             throw new NotYetImplementedException("Not yet implemented");
         }

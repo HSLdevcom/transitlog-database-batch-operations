@@ -3,7 +3,7 @@ package fi.hsl.common.batch;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
-import fi.hsl.common.batch.filewriters.WriterProvider;
+import fi.hsl.common.batch.filewriters.FileWriter;
 import fi.hsl.domain.*;
 import org.springframework.batch.item.ItemWriter;
 
@@ -19,11 +19,10 @@ class CSVItemWriter implements ItemWriter<Event> {
     private final CsvSchema otherEventSchema;
     private final CsvSchema unsignedEventSchema;
     private final CsvSchema lightPriorityEventSchema;
-    private final WriterProvider fileWriterProvider;
+    private final FileWriter fileWriter;
 
-    CSVItemWriter(WriterProvider writerProvider) throws IOException {
-
-        this.fileWriterProvider = writerProvider;
+    CSVItemWriter(FileWriter writerProvider) throws IOException {
+        this.fileWriter = writerProvider;
         csvMapper = new CsvMapper();
         //Do not autoclose filewriter from the csv mapper to avoid performance penalty, filewriter stream closing is handled by the provider
         csvMapper.disable(JsonGenerator.Feature.AUTO_CLOSE_TARGET);
@@ -44,23 +43,23 @@ class CSVItemWriter implements ItemWriter<Event> {
                 .forEach(item -> {
                     try {
                         if (item.getTableType().equals(TableType.VEHICLEPOSITION)) {
-                            csvMapper.writer(vehiclePositionSchema).writeValue(fileWriterProvider.buildFileWriter(item).getWriterOnFile(), item);
+                            csvMapper.writer(vehiclePositionSchema).writeValue(fileWriter.buildFileWriterContext(item).getFileWriter(), item);
                             return;
                         }
                         if (item.getTableType().equals(TableType.STOPEVENT)) {
-                            csvMapper.writer(stopEventSchema).writeValue(fileWriterProvider.buildFileWriter(item).getWriterOnFile(), item);
+                            csvMapper.writer(stopEventSchema).writeValue(fileWriter.buildFileWriterContext(item).getFileWriter(), item);
                             return;
                         }
                         if (item.getTableType().equals(TableType.OTHEREVENT)) {
-                            csvMapper.writer(otherEventSchema).writeValue(fileWriterProvider.buildFileWriter(item).getWriterOnFile(), item);
+                            csvMapper.writer(otherEventSchema).writeValue(fileWriter.buildFileWriterContext(item).getFileWriter(), item);
                             return;
                         }
                         if (item.getTableType().equals(TableType.UNSIGNED)) {
-                            csvMapper.writer(unsignedEventSchema).writeValue(fileWriterProvider.buildFileWriter(item).getWriterOnFile(), item);
+                            csvMapper.writer(unsignedEventSchema).writeValue(fileWriter.buildFileWriterContext(item).getFileWriter(), item);
                             return;
                         }
                         if (item.getTableType().equals(TableType.LIGHTPRIORITYEVENT)) {
-                            csvMapper.writer(lightPriorityEventSchema).writeValue(fileWriterProvider.buildFileWriter(item).getWriterOnFile(), item);
+                            csvMapper.writer(lightPriorityEventSchema).writeValue(fileWriter.buildFileWriterContext(item).getFileWriter(), item);
                         }
                     } catch (IOException e) {
                         e.printStackTrace();

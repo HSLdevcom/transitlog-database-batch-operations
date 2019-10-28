@@ -4,6 +4,9 @@ import fi.hsl.configuration.databases.Database;
 import fi.hsl.configuration.databases.DatabasePoolFactory;
 import fi.hsl.configuration.databases.ReadWriteDatabasePool;
 import org.springframework.batch.core.JobParametersInvalidException;
+import org.springframework.batch.core.launch.NoSuchJobException;
+import org.springframework.batch.core.launch.NoSuchJobExecutionException;
+import org.springframework.batch.core.launch.support.SimpleJobOperator;
 import org.springframework.batch.core.repository.JobExecutionAlreadyRunningException;
 import org.springframework.batch.core.repository.JobInstanceAlreadyCompleteException;
 import org.springframework.batch.core.repository.JobRestartException;
@@ -15,8 +18,13 @@ import java.sql.SQLException;
 
 @Service
 public class DatabaseSplitService {
+    private final SimpleJobOperator simpleJobOperator;
     @Autowired
     private DatabasePoolFactory databasePoolFactory;
+
+    public DatabaseSplitService() {
+        this.simpleJobOperator = new SimpleJobOperator();
+    }
 
     void splitDatabaseTable(DatabaseSplitRequest databaseSplitRequest) throws JobParametersInvalidException, JobExecutionAlreadyRunningException, JobRestartException, JobInstanceAlreadyCompleteException, SQLException, IOException {
         ReadWriteDatabasePool from = databasePoolFactory.createPooledDatabaseInstance(databaseSplitRequest.getFrom());
@@ -24,5 +32,10 @@ public class DatabaseSplitService {
 
 
         from.split(to, new Database.ReadSqlQuery("select * from vehicles", null));
+    }
+
+    void restartJob(Long executionId, Database.DatabaseInstance databaseInstance) throws JobParametersInvalidException, JobRestartException, JobInstanceAlreadyCompleteException, NoSuchJobExecutionException, NoSuchJobException {
+        ReadWriteDatabasePool from = databasePoolFactory.createPooledDatabaseInstance(databaseInstance);
+        from.restoreJob(executionId);
     }
 }

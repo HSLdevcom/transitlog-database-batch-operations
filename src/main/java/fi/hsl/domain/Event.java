@@ -1,15 +1,11 @@
 package fi.hsl.domain;
 
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
-import javax.persistence.Column;
-import javax.persistence.EnumType;
-import javax.persistence.Enumerated;
-import javax.persistence.MappedSuperclass;
+import javax.persistence.*;
 import java.math.BigInteger;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -27,14 +23,13 @@ import java.util.UUID;
 })
 @Data
 public abstract class Event {
-    @JsonIgnore
-    private TableType tableType;
     private Timestamp tst;
     private String unique_vehicle_id;
     @Enumerated(EnumType.STRING)
     private Vehicle.EventType event_type;
     @Enumerated(EnumType.STRING)
     private Vehicle.JourneyType journey_type;
+    @Id
     private UUID uuid;
     private Timestamp received_at;
     private String topic_prefix;
@@ -77,8 +72,7 @@ public abstract class Event {
     private String route;
     private Integer occu;
 
-    public Event(Vehicle item, TableType tableType) {
-        this.tableType = tableType;
+    public Event(Vehicle item) {
         this.tst = item.getTst();
         this.unique_vehicle_id = item.getUnique_vehicle_id();
         this.event_type = item.getEvent_type();

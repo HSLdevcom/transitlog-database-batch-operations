@@ -4,32 +4,24 @@ import fi.hsl.features.splitdatabasetables.DatabaseSplitJob;
 import fi.hsl.features.synchronizedatabases.DatabaseSyncJob;
 import org.springframework.batch.core.JobParameter;
 import org.springframework.batch.core.JobParameters;
-import org.springframework.batch.core.JobParametersInvalidException;
+import org.springframework.batch.core.explore.JobExplorer;
 import org.springframework.batch.core.launch.JobLauncher;
-import org.springframework.batch.core.repository.JobExecutionAlreadyRunningException;
-import org.springframework.batch.core.repository.JobInstanceAlreadyCompleteException;
-import org.springframework.batch.core.repository.JobRestartException;
 
-import java.io.IOException;
-import java.sql.SQLException;
 import java.util.Date;
 import java.util.Map;
 
 public class ReadWriteDatabasePool extends Database {
     private final ReadDatabase readReplica;
     private final WriteDatabase writeReplica;
+    private final JobExplorer jobExplorer;
 
-    ReadWriteDatabasePool(ReadDatabase readReplica, WriteDatabase writeReplica, JobLauncher jobLauncher) {
+    ReadWriteDatabasePool(ReadDatabase readReplica, WriteDatabase writeReplica, JobLauncher jobLauncher, JobExplorer jobExplorer) {
         super(jobLauncher);
         this.readReplica = readReplica;
         this.writeReplica = writeReplica;
+        this.jobExplorer = jobExplorer;
     }
 
-    public void sync(ReadHpqlHpqlQuery readHpqlQuery) {
-        JobParameters jobStartDate = new JobParameters(Map.of("jobStartDate", new JobParameter(new Date())));
-        DatabaseSyncJob databaseSyncJob = new DatabaseSyncJob(readHpqlQuery, readReplica, writeReplica, writeReplica.getJobRepository(), jobStartDate);
-        databaseSyncJob.launchJob();
-    }
 
     public void sync(ReadWriteDatabasePool to, ReadHpqlHpqlQuery readHpqlQuery) {
         JobParameters jobStartDate = new JobParameters(Map.of("jobStartDate", new JobParameter(new Date())));
@@ -37,10 +29,15 @@ public class ReadWriteDatabasePool extends Database {
         databaseSyncJob.launchJob();
     }
 
-    public void split(ReadWriteDatabasePool to, ReadSqlQuery readSqlQuery) throws JobParametersInvalidException, JobExecutionAlreadyRunningException, JobRestartException, JobInstanceAlreadyCompleteException, SQLException, IOException {
+    public void split(ReadWriteDatabasePool to, ReadSqlQuery readSqlQuery) throws Exception {
         JobParameters jobStartDate = new JobParameters(Map.of("jobStartDate", new JobParameter(new Date())));
-        DatabaseSplitJob databaseSplitJob = new DatabaseSplitJob(readSqlQuery, readReplica, to.writeReplica, writeReplica.getJobRepository(), jobStartDate, jobLauncher);
+        DatabaseSplitJob databaseSplitJob = new DatabaseSplitJob(readSqlQuery, readReplica, to.writeReplica, writeReplica.getJobRepository(), jobStartDate, jobLauncher, jobExplorer);
         databaseSplitJob.launchJob();
+    }
+
+    public void restoreJob(ReadWriteDatabasePool to, Long executionId, ReadSqlQuery readSqlQuery) throws Exception {
+        DatabaseSplitJob databaseSplitJob = new DatabaseSplitJob(readSqlQuery, readReplica, to.writeReplica, writeReplica.getJobRepository(), null, jobLauncher, jobExplorer);
+        databaseSplitJob.restoreJob(executionId);
     }
 
 }

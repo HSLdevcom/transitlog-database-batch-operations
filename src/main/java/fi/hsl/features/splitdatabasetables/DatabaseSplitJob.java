@@ -10,26 +10,25 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.*;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
+import org.springframework.batch.core.explore.JobExplorer;
 import org.springframework.batch.core.launch.JobLauncher;
-import org.springframework.batch.core.repository.JobExecutionAlreadyRunningException;
-import org.springframework.batch.core.repository.JobInstanceAlreadyCompleteException;
 import org.springframework.batch.core.repository.JobRepository;
-import org.springframework.batch.core.repository.JobRestartException;
 import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.item.ItemStreamReader;
 import org.springframework.batch.item.ItemWriter;
-import org.springframework.batch.item.database.builder.JdbcCursorItemReaderBuilder;
-import org.springframework.batch.item.support.SynchronizedItemStreamReader;
-import org.springframework.batch.item.support.builder.SynchronizedItemStreamReaderBuilder;
-import org.springframework.retry.policy.SimpleRetryPolicy;
+import org.springframework.batch.item.database.JdbcPagingItemReader;
+import org.springframework.batch.item.database.Order;
+import org.springframework.batch.item.database.builder.JdbcPagingItemReaderBuilder;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import java.io.IOException;
 import java.math.BigInteger;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Map;
 
-import static fi.hsl.common.batch.CSVWriterFactory.createCSVItemWriter;
+import static fi.hsl.common.batch.itemwriters.PersistingItemWriterFactory.createItemWriter;
 
 @Slf4j
 public class DatabaseSplitJob {
@@ -39,33 +38,64 @@ public class DatabaseSplitJob {
     private final JobRepository jobRepository;
     private final JobParameters jobStartDate;
     private final JobLauncher jobLauncher;
+    private final JobExplorer jobExplorer;
+    private final ThreadPoolTaskExecutor threadTaskPool;
 
-    public DatabaseSplitJob(Database.ReadSqlQuery readSqlQuery, ReadDatabase readDatabase, WriteDatabase writeDatabase, JobRepository jobRepository, JobParameters jobStartDate, JobLauncher jobLauncher) throws IOException {
+    public DatabaseSplitJob(Database.ReadSqlQuery readSqlQuery, ReadDatabase readDatabase, WriteDatabase writeDatabase, JobRepository jobRepository, JobParameters jobStartDate, JobLauncher jobLauncher, JobExplorer jobExplorer) {
         this.readSqlQuery = readSqlQuery;
         this.readDatabase = readDatabase;
         this.writeDatabase = writeDatabase;
         this.jobRepository = jobRepository;
         this.jobStartDate = jobStartDate;
         this.jobLauncher = jobLauncher;
+        this.jobExplorer = jobExplorer;
+        this.threadTaskPool = new ThreadPoolTaskExecutor();
+        threadTaskPool.setMaxPoolSize(16);
+        threadTaskPool.setCorePoolSize(16);
+        threadTaskPool.initialize();
     }
 
-    public void launchJob() throws JobParametersInvalidException, JobExecutionAlreadyRunningException, JobRestartException, JobInstanceAlreadyCompleteException, SQLException, IOException {
-        Job databaseSyncJob = createDatabaseSyncJob(readSqlQuery, readDatabase, writeDatabase);
-        jobLauncher.run(databaseSyncJob, jobStartDate);
+    public void restoreJob(long executionId) throws Exception {
+        JobExecution jobExecution = this.jobExplorer.getJobExecution(executionId);
+        JobParameters jobParameters = jobExecution.getJobParameters();
+        Job databaseSyncJob = createDatabaseSplitjob(readDatabase, writeDatabase);
+
+        jobLauncher.run(databaseSyncJob, jobParameters);
     }
 
-    private Job createDatabaseSyncJob(Database.ReadSqlQuery executableHpqlQuery, ReadDatabase readDatabase, WriteDatabase writeDatabase) throws SQLException, IOException {
+    private Job createDatabaseSplitjob(ReadDatabase readDatabase, WriteDatabase writeDatabase) throws Exception {
         return new JobBuilderFactory(jobRepository).get("databaseSplitJob")
-                .flow(createSplitJobReadStep(readDatabase, writeDatabase, executableHpqlQuery)).end().build();
+                .flow(createSplitJobReadStep(readDatabase, writeDatabase)).end().build();
     }
 
-    private Step createSplitJobReadStep(ReadDatabase readDatabase, WriteDatabase writeDatabase, Database.ReadSqlQuery executableSqlQuery) throws SQLException, IOException {
+    private Step createSplitJobReadStep(ReadDatabase readDatabase, WriteDatabase writeDatabase) throws Exception {
         StepBuilderFactory stepBuilderFactory = new StepBuilderFactory(jobRepository, writeDatabase.getWriteTransactionManager());
         return stepBuilderFactory.get("splitJobReadFromDatabase")
                 .<Vehicle, Event>chunk(1000)
-                .reader(createReader(readDatabase, executableSqlQuery.getSqlQuery()))
+                .faultTolerant()
+                .retry(Exception.class)
+                .retryLimit(Integer.MAX_VALUE)
+                .reader(createReader(readDatabase))
+                .listener(new ItemReadListener<>() {
+                    private long timeNow;
+
+                    @Override
+                    public void beforeRead() {
+                        this.timeNow = System.currentTimeMillis();
+                    }
+
+                    @Override
+                    public void afterRead(Vehicle item) {
+                        log.trace("Time taken to read an item: {} ms", System.currentTimeMillis() - timeNow);
+                    }
+
+                    @Override
+                    public void onReadError(Exception ex) {
+
+                    }
+                })
                 .processor(new DomainMappingProcessor())
-                .writer(createWriter())
+                .writer(createWriter(writeDatabase))
                 .listener(new ItemWriteListener<>() {
                     private long timeNow;
 
@@ -85,7 +115,6 @@ public class DatabaseSplitJob {
 
                     }
                 })
-                .faultTolerant()
                 .listener(new ChunkListener() {
                     private long timeNow;
 
@@ -104,31 +133,37 @@ public class DatabaseSplitJob {
 
                     }
                 })
-                .retryPolicy(new SimpleRetryPolicy(Integer.MAX_VALUE))
+                .taskExecutor(threadTaskPool)
                 .build();
 
     }
 
-    private ItemWriter<? super Event> createWriter() throws IOException {
-        return createCSVItemWriter();
+    private ItemWriter<? super Event> createWriter(WriteDatabase writeDatabase) throws IOException {
+        return createItemWriter(writeDatabase.getWriteEntityManager());
     }
 
-    private SynchronizedItemStreamReader<Vehicle> createReader(ReadDatabase readDatabase, String queryString) {
-        ItemStreamReader<Vehicle> jdbcCursorItemReader = new JdbcCursorItemReaderBuilder<Vehicle>()
+    private ItemStreamReader<Vehicle> createReader(ReadDatabase readDatabase) throws Exception {
+        JdbcPagingItemReader<Vehicle> jdbcPagingItemReader = new JdbcPagingItemReaderBuilder<Vehicle>()
                 .name("databaseReader")
+                .saveState(false)
                 .dataSource(readDatabase.getDataSource())
-                .fetchSize(1000)
-                .sql(queryString)
-                .driverSupportsAbsolute(true)
+                .fetchSize(5000)
+                .pageSize(5000)
+                .selectClause("select *")
+                .fromClause("from vehicles")
+                .sortKeys(Map.of("tst", Order.ASCENDING))
                 .rowMapper(new VehicleMapper())
                 .build();
-        return new SynchronizedItemStreamReaderBuilder<Vehicle>()
-                .delegate(jdbcCursorItemReader)
-                .build();
-
+        jdbcPagingItemReader.afterPropertiesSet();
+        return jdbcPagingItemReader;
     }
 
-    private class VehicleMapper implements org.springframework.jdbc.core.RowMapper<Vehicle> {
+    public void launchJob() throws Exception {
+        Job databaseSyncJob = createDatabaseSplitjob(readDatabase, writeDatabase);
+        jobLauncher.run(databaseSyncJob, jobStartDate);
+    }
+
+    private static class VehicleMapper implements org.springframework.jdbc.core.RowMapper<Vehicle> {
         @Override
         public Vehicle mapRow(ResultSet resultSet, int i) throws SQLException {
             Vehicle vehicle = new Vehicle();
@@ -170,8 +205,11 @@ public class DatabaseSplitJob {
             vehicle.setStop(resultSet.getInt("stop"));
             vehicle.setRoute(resultSet.getString("route"));
             vehicle.setOccu(resultSet.getInt("occu"));
-            vehicle.setTransport_mode(Vehicle.TransportMode.valueOf(resultSet.getString("mode")));
-
+            String transportMode = resultSet.getString("mode");
+            if (transportMode != null) {
+                Vehicle.TransportMode mode = Vehicle.TransportMode.valueOf(transportMode);
+                vehicle.setTransport_mode(mode);
+            }
             return vehicle;
         }
     }

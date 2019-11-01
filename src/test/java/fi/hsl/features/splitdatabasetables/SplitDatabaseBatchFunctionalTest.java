@@ -11,18 +11,11 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.springframework.batch.core.JobParametersInvalidException;
-import org.springframework.batch.core.repository.JobExecutionAlreadyRunningException;
-import org.springframework.batch.core.repository.JobInstanceAlreadyCompleteException;
-import org.springframework.batch.core.repository.JobRestartException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-
-import java.io.IOException;
-import java.sql.SQLException;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @SpringBootTest(classes = {DatabaseSynchronizationGateway.class, H2WriteConfiguration.class, H2ReadConfiguration.class, DummyBeans.class})
@@ -43,7 +36,7 @@ public class SplitDatabaseBatchFunctionalTest {
 
     @Test
     @Ignore
-    public void splitBatchJob_succesfulRun_shouldSplitTables() throws SQLException, JobParametersInvalidException, JobExecutionAlreadyRunningException, JobRestartException, JobInstanceAlreadyCompleteException, IOException {
+    public void splitBatchJob_succesfulRun_shouldSplitTables() throws Exception {
         from.split(to, new Database.ReadSqlQuery("select * from vehicles", null));
     }
 }

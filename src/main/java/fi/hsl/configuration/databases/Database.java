@@ -13,8 +13,8 @@ import java.util.Map;
  * Database entity that allows operations on database entities
  */
 public abstract class Database {
-    private final List<ExecutableHpqlQuery> executableHpqlQueryList;
     final JobLauncher jobLauncher;
+    private final List<ExecutableHpqlQuery> executableHpqlQueryList;
 
     public Database(JobLauncher jobLauncher) {
         executableHpqlQueryList = new ArrayList<>();
@@ -25,10 +25,9 @@ public abstract class Database {
         DEV, STAGE, PROD
     }
 
-
     @Data
     @AllArgsConstructor
-    static abstract class ExecutableSqlQuery {
+    public static abstract class ExecutableSqlQuery {
         private final String sqlQuery;
         private final Map<String, Object> parameterList;
 

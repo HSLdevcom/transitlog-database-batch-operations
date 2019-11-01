@@ -15,6 +15,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 
 import javax.sql.DataSource;
 import java.util.HashMap;
+import java.util.Properties;
 
 @Configuration
 @PropertySource({"classpath:application.properties"})
@@ -68,6 +69,11 @@ public class DevReadDbConfig {
         dataSource.setUsername(env.getProperty("jdbc.user"));
         dataSource.setPassword(env.getProperty("jdbc.pass"));
         dataSource.setAutoCommit(false);
+        Properties dsProperties = new Properties();
+        dsProperties.put("connectionTimeout", 0);
+        dsProperties.put("idleTimeout", 0);
+        dsProperties.put("maxLifetime", 0);
+        dataSource.setDataSourceProperties(dsProperties);
 
         return dataSource;
     }

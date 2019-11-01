@@ -12,6 +12,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 
 import javax.sql.DataSource;
 import java.util.HashMap;
+import java.util.Properties;
 
 @Configuration
 @PropertySource({"classpath:application.properties"})
@@ -53,6 +54,10 @@ public class DevWriteDbConfig {
                 env.getProperty("hibernate.hbm2ddl.auto"));
         properties.put("hibernate.dialect",
                 env.getProperty("hibernate.dialect"));
+        properties.put("hibernate.order_inserts", true);
+        properties.put("hibernate.jdbc.batch_size", 5000);
+        properties.put("hibernate.order_updates", true);
+        properties.put("hibernate.jdbc.batch_versioned_data", true);
         em.setJpaPropertyMap(properties);
 
         return em;
@@ -70,6 +75,11 @@ public class DevWriteDbConfig {
         dataSource.setPassword(env.getProperty("jdbc.pass"));
         dataSource.setAutoCommit(false);
 
+        Properties dsProperties = new Properties();
+        dsProperties.put("connectionTimeout", 0);
+        dsProperties.put("idleTimeout", 0);
+        dsProperties.put("maxLifetime", 0);
+        dataSource.setDataSourceProperties(dsProperties);
         return dataSource;
     }
 }

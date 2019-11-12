@@ -53,7 +53,7 @@ public class DevReadDbConfig {
                 env.getProperty("hibernate.hbm2ddl.auto"));
         properties.put("hibernate.dialect",
                 env.getProperty("hibernate.dialect"));
-        properties.put("hibernate.jdbc.time_zone", true);
+        properties.put("hibernate.jdbc.time_zone", "UTC");
         em.setJpaPropertyMap(properties);
 
         return em;

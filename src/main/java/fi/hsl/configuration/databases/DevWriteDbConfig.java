@@ -55,6 +55,7 @@ public class DevWriteDbConfig {
         properties.put("hibernate.dialect",
                 env.getProperty("hibernate.dialect"));
         properties.put("hibernate.order_inserts", true);
+        properties.put("hibernate.jdbc.time_zone", true);
         properties.put("hibernate.jdbc.batch_size", 5000);
         properties.put("hibernate.order_updates", true);
         properties.put("hibernate.jdbc.batch_versioned_data", true);

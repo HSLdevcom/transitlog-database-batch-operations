@@ -391,5 +391,19 @@
                  stripComments="true"/>
     </changeSet>
 
+    <changeSet id="alter_timestamp_column_to_timestampz" author="Aki Väliaho">
+        <modifyDataType tableName="otherevent" columnName="tst" newDataType="timestamp with time zone"/>
+        <modifyDataType tableName="stopevent" columnName="tst" newDataType="timestamp with time zone"/>
+        <modifyDataType tableName="unsignedevent" columnName="tst" newDataType="timestamp with time zone"/>
+        <modifyDataType tableName="lightpriorityevent" columnName="tst" newDataType="timestamp with time zone"/>
+        <modifyDataType tableName="vehicleposition" columnName="tst" newDataType="timestamp with time zone"/>
+
+        <modifyDataType tableName="otherevent" columnName="received_at" newDataType="timestamp with time zone"/>
+        <modifyDataType tableName="stopevent" columnName="received_at" newDataType="timestamp with time zone"/>
+        <modifyDataType tableName="unsignedevent" columnName="received_at" newDataType="timestamp with time zone"/>
+        <modifyDataType tableName="lightpriorityevent" columnName="received_at" newDataType="timestamp with time zone"/>
+        <modifyDataType tableName="vehicleposition" columnName="received_at" newDataType="timestamp with time zone"/>
+    </changeSet>
+
 
 </databaseChangeLog>

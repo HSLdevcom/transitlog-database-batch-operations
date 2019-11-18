@@ -31,7 +31,6 @@ public class ProdDbConfig {
 
     @Bean
     public PlatformTransactionManager prodTransactionManager() {
-
         JpaTransactionManager transactionManager
                 = new JpaTransactionManager();
         transactionManager.setEntityManagerFactory(
@@ -46,7 +45,6 @@ public class ProdDbConfig {
         em.setDataSource(prodDataSource());
         em.setPackagesToScan(
                 "fi.hsl.domain");
-
         HibernateJpaVendorAdapter vendorAdapter = new HibernateJpaVendorAdapter();
         em.setJpaVendorAdapter(vendorAdapter);
         Map<String, Object> properties = new HashMap<>();
@@ -55,13 +53,11 @@ public class ProdDbConfig {
         properties.put("hibernate.dialect",
                 env.getProperty("hibernate.dialect"));
         em.setJpaPropertyMap(properties);
-
         return em;
     }
 
     @Bean
     public DataSource prodDataSource() {
-
         DriverManagerDataSource dataSource
                 = new DriverManagerDataSource();
         dataSource.setDriverClassName(
@@ -69,7 +65,6 @@ public class ProdDbConfig {
         dataSource.setUrl(env.getProperty("prod.jdbc.url"));
         dataSource.setUsername(env.getProperty("jdbc.user"));
         dataSource.setPassword(env.getProperty("jdbc.pass"));
-
         return dataSource;
     }
 }

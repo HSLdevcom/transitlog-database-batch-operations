@@ -1,6 +1,7 @@
 package fi.hsl.features.splitdatabasetables;
 
 import fi.hsl.common.batch.DomainMappingProcessor;
+import fi.hsl.common.batch.JdbcNonLimitingPagingItemReaderBuilder;
 import fi.hsl.configuration.databases.Database;
 import fi.hsl.configuration.databases.ReadDatabase;
 import fi.hsl.configuration.databases.WriteDatabase;
@@ -18,7 +19,6 @@ import org.springframework.batch.item.ItemStreamReader;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.item.database.JdbcPagingItemReader;
 import org.springframework.batch.item.database.Order;
-import org.springframework.batch.item.database.builder.JdbcPagingItemReaderBuilder;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import java.io.IOException;
@@ -143,7 +143,7 @@ public class DatabaseSplitJob {
     }
 
     private ItemStreamReader<Vehicle> createReader(ReadDatabase readDatabase) throws Exception {
-        JdbcPagingItemReader<Vehicle> jdbcPagingItemReader = new JdbcPagingItemReaderBuilder<Vehicle>()
+        JdbcPagingItemReader<Vehicle> jdbcPagingItemReader = new JdbcNonLimitingPagingItemReaderBuilder<Vehicle>()
                 .name("databaseReader")
                 .saveState(false)
                 .dataSource(readDatabase.getDataSource())
@@ -151,7 +151,7 @@ public class DatabaseSplitJob {
                 .pageSize(5000)
                 .selectClause("select *")
                 .fromClause("from vehicles")
-                .sortKeys(Map.of("tst", Order.ASCENDING))
+                .sortKeys(Map.of("tst", Order.DESCENDING))
                 .rowMapper(new VehicleMapper())
                 .build();
         jdbcPagingItemReader.afterPropertiesSet();

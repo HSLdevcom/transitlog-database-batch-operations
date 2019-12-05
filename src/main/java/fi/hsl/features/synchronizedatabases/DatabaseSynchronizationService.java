@@ -4,10 +4,6 @@ import fi.hsl.configuration.databases.Database;
 import fi.hsl.configuration.databases.DatabasePoolFactory;
 import fi.hsl.configuration.databases.ReadWriteDatabasePool;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.batch.core.JobParametersInvalidException;
-import org.springframework.batch.core.repository.JobExecutionAlreadyRunningException;
-import org.springframework.batch.core.repository.JobInstanceAlreadyCompleteException;
-import org.springframework.batch.core.repository.JobRestartException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -20,7 +16,7 @@ class DatabaseSynchronizationService {
     @Autowired
     private DatabasePoolFactory databasePoolFactory;
 
-    void synchronizeDatabasesOnVehiclesTable(DatabaseSynchronizationRequest databaseSynchronizationRequest) throws JobExecutionAlreadyRunningException, JobRestartException, JobInstanceAlreadyCompleteException, JobParametersInvalidException {
+    void synchronizeDatabasesOnVehiclesTable(DatabaseSynchronizationRequest databaseSynchronizationRequest) throws Exception {
         ReadWriteDatabasePool from = databasePoolFactory.createPooledDatabaseInstance(databaseSynchronizationRequest.getFrom());
         ReadWriteDatabasePool to = databasePoolFactory.createPooledDatabaseInstance(databaseSynchronizationRequest.getTo());
 

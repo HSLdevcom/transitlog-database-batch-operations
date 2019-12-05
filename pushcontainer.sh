@@ -18,7 +18,7 @@ function buildDockerContainer {
 
 }
 
-function saveContainerIntoTar {
+function exportContainerIntoTar {
 	#Save container into a tar file
 	docker save -o image.tar $containerHash
 	if [ $? -eq 0 ]
@@ -42,7 +42,11 @@ function remoteLoadDockerContainer {
 	sshpass -p $SYNCMACHINEPASSWORD ssh -t $SYNCMACHINEUSERNAME@$SYNCMACHINEIP 'echo '$SYNCMACHINEPASSWORD' | sudo -S docker load -i image.tar'
 }
 
-#Check commands exist
+function registerCleanupHook {
+ 	trap "echo "chowning" &&  chown -R $(logname):$(logname) ../" EXIT ERR INT TERM
+}
+
+#Check dependencies exist
 if [ -z $(command -v sshpass) ]; then sudo apt-get install sshpass; else echo "sshpass is found"; fi
 
 mvn clean install
@@ -50,9 +54,9 @@ mvn clean install
 
 if [ $? -eq 0 ]
 then
-	trap "echo "chowning" &&  chown -R $(logname):$(logname) ../" EXIT ERR INT TERM
+  registerCleanupHook
 	buildDockerContainer
-	saveContainerIntoTar
+	exportContainerIntoTar
 	syncContainerWithRSync
 	remoteLoadDockerContainer
 else

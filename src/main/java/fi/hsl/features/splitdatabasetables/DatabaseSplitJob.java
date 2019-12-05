@@ -1,7 +1,9 @@
 package fi.hsl.features.splitdatabasetables;
 
 import fi.hsl.common.batch.DomainMappingProcessor;
-import fi.hsl.common.batch.JdbcNonLimitingPagingItemReaderBuilder;
+import fi.hsl.common.batch.JdbcCursorItemReader;
+import fi.hsl.common.batch.JdbcLongCountingCursorItemReaderBuilder;
+import fi.hsl.common.batch.LongRowMapper;
 import fi.hsl.configuration.databases.Database;
 import fi.hsl.configuration.databases.ReadDatabase;
 import fi.hsl.configuration.databases.WriteDatabase;
@@ -13,22 +15,23 @@ import org.springframework.batch.core.configuration.annotation.JobBuilderFactory
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
 import org.springframework.batch.core.explore.JobExplorer;
 import org.springframework.batch.core.launch.JobLauncher;
+import org.springframework.batch.core.launch.JobOperator;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.item.ItemStreamReader;
 import org.springframework.batch.item.ItemWriter;
-import org.springframework.batch.item.database.JdbcPagingItemReader;
-import org.springframework.batch.item.database.Order;
+import org.springframework.batch.item.database.builder.JpaItemWriterBuilder;
+import org.springframework.retry.policy.AlwaysRetryPolicy;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import java.io.IOException;
 import java.math.BigInteger;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
-
-import static fi.hsl.common.batch.itemwriters.PersistingItemWriterFactory.createItemWriter;
 
 @Slf4j
 public class DatabaseSplitJob {
@@ -39,9 +42,10 @@ public class DatabaseSplitJob {
     private final JobParameters jobStartDate;
     private final JobLauncher jobLauncher;
     private final JobExplorer jobExplorer;
+    private final JobOperator jobOperator;
     private final ThreadPoolTaskExecutor threadTaskPool;
 
-    public DatabaseSplitJob(Database.ReadSqlQuery readSqlQuery, ReadDatabase readDatabase, WriteDatabase writeDatabase, JobRepository jobRepository, JobParameters jobStartDate, JobLauncher jobLauncher, JobExplorer jobExplorer) {
+    public DatabaseSplitJob(Database.ReadSqlQuery readSqlQuery, ReadDatabase readDatabase, WriteDatabase writeDatabase, JobRepository jobRepository, JobParameters jobStartDate, JobLauncher jobLauncher, JobExplorer jobExplorer, JobOperator jobOperator) {
         this.readSqlQuery = readSqlQuery;
         this.readDatabase = readDatabase;
         this.writeDatabase = writeDatabase;
@@ -49,6 +53,7 @@ public class DatabaseSplitJob {
         this.jobStartDate = jobStartDate;
         this.jobLauncher = jobLauncher;
         this.jobExplorer = jobExplorer;
+        this.jobOperator = jobOperator;
         this.threadTaskPool = new ThreadPoolTaskExecutor();
         threadTaskPool.setMaxPoolSize(16);
         threadTaskPool.setCorePoolSize(16);
@@ -57,25 +62,22 @@ public class DatabaseSplitJob {
 
     public void restoreJob(long executionId) throws Exception {
         JobExecution jobExecution = this.jobExplorer.getJobExecution(executionId);
-        JobParameters jobParameters = jobExecution.getJobParameters();
-        Job databaseSyncJob = createDatabaseSplitjob(readDatabase, writeDatabase);
-
-        jobLauncher.run(databaseSyncJob, jobParameters);
+        Job databaseSyncJob = createDatabaseSplitjob(readDatabase, writeDatabase, new ArrayList<>(jobExecution.getStepExecutions()).get(0).getReadCount());
+        jobLauncher.run(databaseSyncJob, new JobParameters(Map.of("jobStartDate", new JobParameter(new Date()))));
     }
 
-    private Job createDatabaseSplitjob(ReadDatabase readDatabase, WriteDatabase writeDatabase) throws Exception {
+    private Job createDatabaseSplitjob(ReadDatabase readDatabase, WriteDatabase writeDatabase, int currentRow) throws Exception {
         return new JobBuilderFactory(jobRepository).get("databaseSplitJob")
-                .flow(createSplitJobReadStep(readDatabase, writeDatabase)).end().build();
+                .flow(createSplitJobReadStep(readDatabase, writeDatabase, currentRow)).end().build();
     }
 
-    private Step createSplitJobReadStep(ReadDatabase readDatabase, WriteDatabase writeDatabase) throws Exception {
+    private Step createSplitJobReadStep(ReadDatabase readDatabase, WriteDatabase writeDatabase, int currentRow) throws Exception {
         StepBuilderFactory stepBuilderFactory = new StepBuilderFactory(jobRepository, writeDatabase.getWriteTransactionManager());
         return stepBuilderFactory.get("splitJobReadFromDatabase")
                 .<Vehicle, Event>chunk(1000)
+                .reader(createReader(readDatabase, currentRow))
                 .faultTolerant()
-                .retry(Exception.class)
-                .retryLimit(Integer.MAX_VALUE)
-                .reader(createReader(readDatabase))
+                .retryPolicy(new AlwaysRetryPolicy())
                 .listener(new ItemReadListener<>() {
                     private long timeNow;
 
@@ -96,6 +98,8 @@ public class DatabaseSplitJob {
                 })
                 .processor(new DomainMappingProcessor())
                 .writer(createWriter(writeDatabase))
+                .faultTolerant()
+                .retryPolicy(new AlwaysRetryPolicy())
                 .listener(new ItemWriteListener<>() {
                     private long timeNow;
 
@@ -139,33 +143,30 @@ public class DatabaseSplitJob {
     }
 
     private ItemWriter<? super Event> createWriter(WriteDatabase writeDatabase) throws IOException {
-        return createItemWriter(writeDatabase.getWriteEntityManager());
+        return new JpaItemWriterBuilder<>().entityManagerFactory(writeDatabase.getWriteEntityManager()).build();
     }
 
-    private ItemStreamReader<Vehicle> createReader(ReadDatabase readDatabase) throws Exception {
-        JdbcPagingItemReader<Vehicle> jdbcPagingItemReader = new JdbcNonLimitingPagingItemReaderBuilder<Vehicle>()
+    private ItemStreamReader<Vehicle> createReader(ReadDatabase readDatabase, int currentRow) throws Exception {
+        JdbcCursorItemReader<Vehicle> jdbcCursorItemReader = new JdbcLongCountingCursorItemReaderBuilder<Vehicle>()
                 .name("databaseReader")
-                .saveState(false)
                 .dataSource(readDatabase.getDataSource())
-                .fetchSize(5000)
-                .pageSize(5000)
-                .selectClause("select *")
-                .fromClause("from vehicles")
-                .sortKeys(Map.of("tst", Order.DESCENDING))
+                .fetchSize(1000)
+                .currentItemCount(currentRow)
+                .sql("select * from vehicles")
                 .rowMapper(new VehicleMapper())
                 .build();
-        jdbcPagingItemReader.afterPropertiesSet();
-        return jdbcPagingItemReader;
+        jdbcCursorItemReader.afterPropertiesSet();
+        return jdbcCursorItemReader;
     }
 
-    public void launchJob() throws Exception {
-        Job databaseSyncJob = createDatabaseSplitjob(readDatabase, writeDatabase);
+    public void launchJob(int currentRow) throws Exception {
+        Job databaseSyncJob = createDatabaseSplitjob(readDatabase, writeDatabase, currentRow);
         jobLauncher.run(databaseSyncJob, jobStartDate);
     }
 
-    private static class VehicleMapper implements org.springframework.jdbc.core.RowMapper<Vehicle> {
+    private static class VehicleMapper implements LongRowMapper<Vehicle> {
         @Override
-        public Vehicle mapRow(ResultSet resultSet, int i) throws SQLException {
+        public Vehicle mapRow(ResultSet resultSet, long i) throws SQLException {
             Vehicle vehicle = new Vehicle();
             vehicle.setReceived_at(resultSet.getTimestamp("received_at"));
             vehicle.setTopic_prefix(resultSet.getString("topic_prefix"));
@@ -212,6 +213,7 @@ public class DatabaseSplitJob {
             }
             return vehicle;
         }
+
     }
 
 }

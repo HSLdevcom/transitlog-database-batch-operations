@@ -31,6 +31,8 @@ public abstract class Event {
     private Vehicle.JourneyType journey_type;
     @Id
     private UUID uuid;
+    @Version
+    private Long version;
     private Timestamp received_at;
     private String topic_prefix;
     private String topic_version;

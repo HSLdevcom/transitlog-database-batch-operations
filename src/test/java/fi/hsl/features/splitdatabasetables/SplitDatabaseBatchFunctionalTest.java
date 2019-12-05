@@ -37,6 +37,6 @@ public class SplitDatabaseBatchFunctionalTest {
     @Test
     @Ignore
     public void splitBatchJob_succesfulRun_shouldSplitTables() throws Exception {
-        from.split(to, new Database.ReadSqlQuery("select * from vehicles", null));
+        from.split(to, new Database.ReadSqlQuery("select * from vehicles", null), 0);
     }
 }

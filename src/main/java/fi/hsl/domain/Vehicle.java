@@ -1,14 +1,15 @@
 package fi.hsl.domain;
 
 import lombok.Data;
+import lombok.ToString;
 
-import javax.persistence.Column;
 import java.math.BigInteger;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Date;
 
 @Data
+@ToString
 public class Vehicle {
     private Long id;
     private Timestamp tst;
@@ -62,7 +63,7 @@ public class Vehicle {
     }
 
     public enum TransportMode {
-        bus, train, tram,metro,ferry
+        bus, train, tram, metro, ferry
     }
 
     public enum LocationQualityMethod {

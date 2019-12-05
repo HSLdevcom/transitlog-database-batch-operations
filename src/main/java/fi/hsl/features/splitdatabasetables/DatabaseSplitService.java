@@ -21,7 +21,7 @@ public class DatabaseSplitService {
         ReadWriteDatabasePool from = databasePoolFactory.createPooledDatabaseInstance(databaseSplitRequest.getFrom());
         ReadWriteDatabasePool to = databasePoolFactory.createPooledDatabaseInstance(databaseSplitRequest.getTo());
 
-        from.split(to, new Database.ReadSqlQuery("select * from vehicles", null));
+        from.split(to, new Database.ReadSqlQuery("select * from vehicles", null), databaseSplitRequest.getCurrentRow());
     }
 
     void restoreJob(Database.DatabaseInstance from, long jobId) throws Exception {

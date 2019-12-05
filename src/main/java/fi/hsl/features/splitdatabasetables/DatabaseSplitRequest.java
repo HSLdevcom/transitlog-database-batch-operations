@@ -20,5 +20,13 @@ class DatabaseSplitRequest {
     @Getter
     @Setter
     private Database.DatabaseInstance to;
+    private int currentRow;
 
+    public int getCurrentRow() {
+        return currentRow;
+    }
+
+    public void setCurrentRow(int currentRow) {
+        this.currentRow = currentRow;
+    }
 }

@@ -60,10 +60,10 @@ class DatabasePoolFactory {
         if (databaseInstance.equals(DEV)) {
             ReadDatabase readDatabase = new ReadDatabase(devReadEntityManager, devReadTransactionManager, jobLauncher);
             WriteDatabase writeDatabase = new WriteDatabase(devWriteTransactionManager, devWriteEntityManager, jobLauncher, jobRepository, jobOperator);
-            return new ReadWriteDatabasePool(readDatabase, writeDatabase, jobLauncher, jobExplorer);
+            return new ReadWriteDatabasePool(readDatabase, writeDatabase, jobLauncher, jobExplorer, jobOperator);
         } else if (databaseInstance.equals(STAGE)) {
             return new ReadWriteDatabasePool(new ReadDatabase(stageReadEntityManagerFactory, stageWriteTransactionManager, jobLauncher),
-                    new WriteDatabase(stageWriteTransactionManager, stageWriteEntityManagerFactory, jobLauncher, jobRepository, jobOperator), jobLauncher, jobExplorer);
+                    new WriteDatabase(stageWriteTransactionManager, stageWriteEntityManagerFactory, jobLauncher, jobRepository, jobOperator), jobLauncher, jobExplorer, jobOperator);
         } else if (databaseInstance.equals(PROD)) {
             throw new NotYetImplementedException("Not yet implemented");
         }
